@@ -1,0 +1,6 @@
+recipes:
+  - name : tensorflow-serving
+    path : tensorflow-serving
+
+  - name : tensorflow-serving-api
+    path : tensorflow-serving-api
