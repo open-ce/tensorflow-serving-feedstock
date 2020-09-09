@@ -1,0 +1,51 @@
+{% set version = "2.3.0" %}
+
+package:
+   name: tensorflow-serving-api
+   version: {{ version }}
+
+source:
+   git_url: https://github.com/tensorflow/serving.git
+   git_rev: {{ version }}
+   patches:
+     - 0001-Replace-k8-with-ppc-for-Power-builds.patch # [ppc64le]
+
+build:
+  number: 1
+  noarch: python
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  host:
+   - bazel {{ bazel }}
+   - python # noarch package; don't tie to specific python version
+   - tensorflow-base {{ tensorflow }}
+   - grpcio {{ grpcio }}
+   - protobuf {{ protobuf }}
+  run:
+   - python # noarch package; don't tie to specific python version
+   - tensorflow-base >={{ tensorflow }}
+   - grpcio {{ grpcio }}
+   - protobuf {{ protobuf }}
+
+about:
+  home: https://www.tensorflow.org/tfx/guide/serving
+  license: Apache 2.0
+  license_family: Apache
+  license_file: LICENSE
+  summary: TensorFlow Serving is an open-source library for serving machine learning models
+  description: |
+    TensorFlow Serving is a flexible, high-performance serving system for machine learning models,
+    designed for production environments. TensorFlow Serving makes it easy to deploy new algorithms
+    and experiments, while keeping the same server architecture and APIs. TensorFlow Serving provides
+    out-of-the-box integration with TensorFlow models, but can be easily extended to serve other
+    types of models and data.
+  dev_url: https://github.com/tensorflow/serving/
+  doc_url: https://www.tensorflow.org/tfx/guide/serving
+  doc_source_url: https://github.com/tensorflow/serving/tree/master/tensorflow_serving/g3doc
+
+extra:
+  recipe-maintainers:
+    - open-ce/open-ce-dev-team

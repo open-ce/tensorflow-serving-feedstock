@@ -1,0 +1,68 @@
+From f964b354dd8a70916dec41e19d7a9cbe93c3135e Mon Sep 17 00:00:00 2001
+From: Nishidha Panpaliya <npanpa23@in.ibm.com>
+Date: Mon, 31 Aug 2020 10:47:02 +0000
+Subject: [PATCH] Build fix for ppc64le
+
+---
+ WORKSPACE                                       |  1 +
+ third_party/tensorflow/BUILD                    |  0
+ third_party/tensorflow/tensorflow_patches.patch | 31 +++++++++++++++++++++++++
+ 3 files changed, 32 insertions(+)
+ create mode 100644 third_party/tensorflow/BUILD
+ create mode 100644 third_party/tensorflow/tensorflow_patches.patch
+
+diff --git a/WORKSPACE b/WORKSPACE
+index 68ebad7..a1f44ba 100644
+--- a/WORKSPACE
++++ b/WORKSPACE
+@@ -13,6 +13,7 @@ tensorflow_http_archive(
+     name = "org_tensorflow",
+     sha256 = "a474d4328524de1951655cd6afb4888d256c37a0b4a47e6c623b353ab382b39f",
+     git_commit = "b36436b087bd8e8701ef51718179037cccdfc26e",
++    patch = "//third_party/tensorflow:tensorflow_patches.patch",
+ )
+ 
+ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+diff --git a/third_party/tensorflow/BUILD b/third_party/tensorflow/BUILD
+new file mode 100644
+index 0000000..e69de29
+diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
+new file mode 100644
+index 0000000..4a63731
+--- /dev/null
++++ b/third_party/tensorflow/tensorflow_patches.patch
+@@ -0,0 +1,31 @@
++From 9bf85715a3eaa5d66df3371ae5818510a94a5185 Mon Sep 17 00:00:00 2001
++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
++Date: Mon, 31 Aug 2020 10:45:07 +0000
++Subject: [PATCH] Fix for TF 2.3.0 Build failure
++
++---
++ tensorflow/core/profiler/utils/xplane_schema.cc | 3 ++-
++ 1 file changed, 2 insertions(+), 1 deletion(-)
++
++diff --git a/tensorflow/core/profiler/utils/xplane_schema.cc b/tensorflow/core/profiler/utils/xplane_schema.cc
++index 5ca8326..13e7522 100644
++--- a/tensorflow/core/profiler/utils/xplane_schema.cc
+++++ b/tensorflow/core/profiler/utils/xplane_schema.cc
++@@ -221,12 +221,13 @@ absl::optional<int64> FindStatType(absl::string_view stat_name) {
++ }
++ 
++ bool IsInternalStat(absl::optional<int64> stat_type) {
++-  static const auto* const kInternalStats = new absl::flat_hash_set<int64>{
+++  std::vector<int64> stats = {
++       StatType::kKernelDetails, StatType::kLevel0,
++       StatType::kProducerType,  StatType::kProducerId,
++       StatType::kConsumerType,  StatType::kConsumerId,
++       StatType::kIsRoot,        StatType::kIsAsync,
++       StatType::kFlops,         StatType::kBytesAccessed};
+++  static const auto* const kInternalStats = new absl::flat_hash_set<int64>(stats.begin(), stats.end());
++   return stat_type.has_value() && kInternalStats->contains(*stat_type);
++ }
++ 
++-- 
++1.8.3.1
++
+-- 
+1.8.3.1
+
