@@ -13,16 +13,21 @@
 set -vex
 
 BUILD_OPTS=""
-
+CUDA_COMPUTE_OPTION=''
 if [[ "${ARCH}" == 'ppc64le' ]]; then
     export CC_OPT_FLAGS="-mcpu=power8 -mtune=power8"
+    # M40 and P4 never fully qualified on ppc64le
+    CUDA_COMPUTE_OPTION='sm_37,sm_60,sm_70,compute_75'
 else
+    export CC_OPT_FLAGS="-march=nocona -mtune=haswell"
     BUILD_OPTS+=" --config=release"
+    CUDA_COMPUTE_OPTION='sm_37,sm_52,sm_60,sm_61,sm_70,compute_75'
 fi
 
 ln -s $GCC $PREFIX/gcc
 ln -s $GXX $PREFIX/g++
 export GCC_HOST_COMPILER_PATH=${CC}
+
 if [ "${build_type}" = "cuda" ]; then
   BUILD_OPTS+=" --config=cuda --copt=-fPIC"
   export TF_NEED_CUDA=1
@@ -32,7 +37,7 @@ if [ "${build_type}" = "cuda" ]; then
   export TF_TENSORRT_VERSION=${tensorrt:0:1}
   export TF_NCCL_VERSION=${nccl:0:1}
   export TF_CUDA_PATHS=${PREFIX}
-  export TF_CUDA_COMPUTE_CAPABILITIES=3.7,6.0,7.0,7.5
+  export TF_CUDA_COMPUTE_CAPABILITIES="${CUDA_COMPUTE_OPTION}"
 elif [ "${build_type}" = "mkl" ]; then
   BUILD_OPTS+=" --config=mkl"
 fi
