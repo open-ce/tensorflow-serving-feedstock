@@ -1,13 +1,13 @@
-From 7d843839a2e5648ca3faf503f676e81450958ac7 Mon Sep 17 00:00:00 2001
+From 74726d2fc265981e5a685f9de50d8d968875d15a Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Thu, 27 Aug 2020 05:37:32 -0400
+Date: Fri, 11 Sep 2020 06:55:06 +0000
 Subject: [PATCH] Tensorflow 2.3.0 patches
 
 ---
  WORKSPACE                                       |  1 +
  third_party/tensorflow/BUILD                    |  0
- third_party/tensorflow/tensorflow_patches.patch | 79 +++++++++++++++++++++++++
- 3 files changed, 80 insertions(+)
+ third_party/tensorflow/tensorflow_patches.patch | 92 +++++++++++++++++++++++++
+ 3 files changed, 93 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
@@ -28,21 +28,22 @@ new file mode 100644
 index 0000000..e69de29
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 0000000..3a9e67b
+index 0000000..80142a5
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,79 @@
-+From 16d2a9746e1b2d10951e15ffc0cb7ccce446244d Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,92 @@
++From 61b9c031b69a7532af2355e6b858488671678094 Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Thu, 27 Aug 2020 05:36:26 -0400
-+Subject: [PATCH] TF 2.3 patches
++Date: Fri, 11 Sep 2020 06:53:05 +0000
++Subject: [PATCH]  TF 2.3 patches
 +
 +---
 + tensorflow/core/profiler/utils/xplane_schema.cc | 3 ++-
 + tensorflow/tensorflow.bzl                       | 2 ++
 + third_party/gpus/find_cuda_config.py            | 2 ++
 + third_party/tensorrt/BUILD.tpl                  | 1 +
-+ 4 files changed, 7 insertions(+), 1 deletion(-)
++ third_party/tensorrt/tensorrt_configure.bzl     | 1 +
++ 5 files changed, 8 insertions(+), 1 deletion(-)
 +
 +diff --git a/tensorflow/core/profiler/utils/xplane_schema.cc b/tensorflow/core/profiler/utils/xplane_schema.cc
 +index 5ca8326..13e7522 100644
@@ -108,6 +109,18 @@ index 0000000..3a9e67b
 +     linkstatic = 1,
 +     deps = [
 +         ":tensorrt_headers",
++diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
++index 9c980a9..cd6f01f 100644
++--- a/third_party/tensorrt/tensorrt_configure.bzl
+++++ b/third_party/tensorrt/tensorrt_configure.bzl
++@@ -101,6 +101,7 @@ def _create_local_tensorrt_repository(repository_ctx):
++ 
++     # Copy the library and header files.
++     libraries = [lib_name(lib, cpu_value, trt_version) for lib in _TF_TENSORRT_LIBS]
+++    libraries.append("libmemcpy-2.14.so")
++     library_dir = config["tensorrt_library_dir"] + "/"
++     headers = _get_tensorrt_headers(trt_version)
++     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
 +1.8.3.1
 +
