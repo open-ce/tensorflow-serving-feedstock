@@ -27,7 +27,6 @@ requirements:
   host:
    - libevent {{ libevent }}
    - bazel {{ bazel }}
-   - tensorflow-base {{ tensorflow }} {{ build_type }}* 
    - cudatoolkit-dev {{ cudatoolkit }} # [build_type == 'cuda']
    - cudnn {{ cudnn }}                 # [build_type == 'cuda']
    - nccl {{ nccl }}                   # [build_type == 'cuda']

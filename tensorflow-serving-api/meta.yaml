@@ -21,12 +21,11 @@ requirements:
   host:
    - bazel {{ bazel }}
    - python # noarch package; don't tie to specific python version
-   - tensorflow-base {{ tensorflow }}
+   - numpy {{ numpy }}
    - grpcio {{ grpcio }}
    - protobuf {{ protobuf }}
   run:
    - python # noarch package; don't tie to specific python version
-   - tensorflow-base >={{ tensorflow }}
    - grpcio {{ grpcio }}
    - protobuf {{ protobuf }}
 
