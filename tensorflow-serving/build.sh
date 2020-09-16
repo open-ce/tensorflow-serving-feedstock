@@ -44,6 +44,9 @@ fi
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PREFIX}/lib
 
+bazel clean --expunge
+bazel shutdown
+
 bazel build ${BUILD_OPTS} \
     --action_env PYTHON_BIN_PATH="$PYTHON" \
     --action_env PYTHON_LIB_PATH="$SP_DIR" \

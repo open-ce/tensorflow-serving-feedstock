@@ -16,6 +16,9 @@ if [[ "${ARCH}" == 'ppc64le' ]]; then
     export CC_OPT_FLAGS="-mcpu=power8 -mtune=power8"
 fi
 
+bazel clean --expunge
+bazel shutdown
+
 bazel build \
     --color=yes \
     --curses=yes \
