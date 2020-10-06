@@ -36,7 +36,7 @@ if [ "${build_type}" = "cuda" ]; then
   export TF_CUDNN_VERSION=${cudnn:0:1} #First digit only
   export TF_TENSORRT_VERSION=${tensorrt:0:1}
   export TF_NCCL_VERSION=${nccl:0:1}
-  export TF_CUDA_PATHS=${PREFIX}
+  export TF_CUDA_PATHS="$OPEN_CE_CUDA_HOME,${PREFIX}"
   export TF_CUDA_COMPUTE_CAPABILITIES="${CUDA_COMPUTE_OPTION}"
 elif [ "${build_type}" = "mkl" ]; then
   BUILD_OPTS+=" --config=mkl"
