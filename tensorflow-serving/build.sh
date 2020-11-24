@@ -33,6 +33,7 @@ fi
 ln -s $GCC $PREFIX/gcc
 ln -s $GXX $PREFIX/g++
 
+
 if [ "${build_type}" = "mkl" ]; then
   BUILD_OPTS+=" --config=mkl"
 fi
