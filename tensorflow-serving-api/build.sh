@@ -12,21 +12,19 @@
 
 set -vex
 
-if [[ "${ARCH}" == 'ppc64le' ]]; then
-    export CC_OPT_FLAGS="-mcpu=power8 -mtune=power8"
-fi
-
 bazel clean --expunge
 bazel shutdown
 
-bazel build \
-    --color=yes \
+SCRIPT_DIR=$RECIPE_DIR/../buildscripts
+# Pick up additional variables defined from the conda build environment
+$SCRIPT_DIR/set_python_path_for_bazelrc.sh $SRC_DIR/tensorflow_serving
+
+# Build the bazelrc
+$SCRIPT_DIR/set_tf_serving_bazelrc.sh $SRC_DIR/tensorflow_serving
+
+bazel --bazelrc=$SRC_DIR/tensorflow_serving/tensorflow-serving.bazelrc build \
     --curses=yes \
-    --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \
-    --action_env PYTHON_BIN_PATH="$PYTHON" \
-    --action_env PYTHON_LIB_PATH="$SP_DIR" \
-    --python_path="$PYTHON" \
     tensorflow_serving/tools/pip_package:build_pip_package
 
 bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package $SRC_DIR/tensorflow_serving_pkg

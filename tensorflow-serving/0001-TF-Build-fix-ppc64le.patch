@@ -1,24 +1,24 @@
-From f964b354dd8a70916dec41e19d7a9cbe93c3135e Mon Sep 17 00:00:00 2001
+From 1ae39c7675b641c750933246bdaf42c14040775f Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Mon, 31 Aug 2020 10:47:02 +0000
+Date: Tue, 24 Nov 2020 12:45:37 +0000
 Subject: [PATCH] Build fix for ppc64le
 
 ---
  WORKSPACE                                       |  1 +
  third_party/tensorflow/BUILD                    |  0
- third_party/tensorflow/tensorflow_patches.patch | 31 +++++++++++++++++++++++++
- 3 files changed, 32 insertions(+)
+ third_party/tensorflow/tensorflow_patches.patch | 46 +++++++++++++++++++++++++
+ 3 files changed, 47 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 68ebad7..a1f44ba 100644
+index 57ed650..47cc49d 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -13,6 +13,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "a474d4328524de1951655cd6afb4888d256c37a0b4a47e6c623b353ab382b39f",
-     git_commit = "b36436b087bd8e8701ef51718179037cccdfc26e",
+     sha256 = "098733e15e227a6a55997295ca761a9a8e7169b64104ea86feb952e4e2ea0bc9",
+     git_commit = "0b06f2927be226ffe44f47bfa9e03e4ea649d7f3",
 +    patch = "//third_party/tensorflow:tensorflow_patches.patch",
  )
  
@@ -28,38 +28,53 @@ new file mode 100644
 index 0000000..e69de29
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 0000000..4a63731
+index 0000000..ea42322
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,31 @@
-+From 9bf85715a3eaa5d66df3371ae5818510a94a5185 Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,46 @@
++From a3375f0ac1222c76e6ab8057ec03c2817da2d697 Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Mon, 31 Aug 2020 10:45:07 +0000
-+Subject: [PATCH] Fix for TF 2.3.0 Build failure
++Date: Tue, 24 Nov 2020 12:34:37 +0000
++Subject: [PATCH] Fixes for TF 2.4 to be built
 +
 +---
-+ tensorflow/core/profiler/utils/xplane_schema.cc | 3 ++-
-+ 1 file changed, 2 insertions(+), 1 deletion(-)
++ tensorflow/workspace.bzl                    | 8 ++++----
++ third_party/tensorrt/tensorrt_configure.bzl | 2 ++
++ 2 files changed, 6 insertions(+), 4 deletions(-)
 +
-+diff --git a/tensorflow/core/profiler/utils/xplane_schema.cc b/tensorflow/core/profiler/utils/xplane_schema.cc
-+index 5ca8326..13e7522 100644
-+--- a/tensorflow/core/profiler/utils/xplane_schema.cc
-++++ b/tensorflow/core/profiler/utils/xplane_schema.cc
-+@@ -221,12 +221,13 @@ absl::optional<int64> FindStatType(absl::string_view stat_name) {
-+ }
++diff --git a/tensorflow/workspace.bzl b/tensorflow/workspace.bzl
++index a6ea009..463d1b0 100755
++--- a/tensorflow/workspace.bzl
+++++ b/tensorflow/workspace.bzl
++@@ -198,11 +198,11 @@ def tf_repositories(path_prefix = "", tf_repo_name = ""):
++         name = "eigen_archive",
++         build_file = clean_dep("//third_party:eigen.BUILD"),
++         patch_file = clean_dep("//third_party/eigen3:gpu_packet_math.patch"),
++-        sha256 = "e807a6a6f3a0e8ab10adeb59bb5a9bbb113e8e1684f9b4b32f73f58fd758b4cf",  # SHARED_EIGEN_SHA
++-        strip_prefix = "eigen-011e0db31d1bed8b7f73662be6d57d9f30fa457a",
+++        sha256 = "6e1a98ef330cf359015404b2191a816c1cd3a8a2b457ed239a2e258337c4488d",  # SHARED_EIGEN_SHA
+++        strip_prefix = "eigen-revert-matrix-enhance",
++         urls = [
++-            "https://storage.googleapis.com/mirror.tensorflow.org/gitlab.com/libeigen/eigen/-/archive/011e0db31d1bed8b7f73662be6d57d9f30fa457a/eigen-011e0db31d1bed8b7f73662be6d57d9f30fa457a.tar.gz",
++-            "https://gitlab.com/libeigen/eigen/-/archive/011e0db31d1bed8b7f73662be6d57d9f30fa457a/eigen-011e0db31d1bed8b7f73662be6d57d9f30fa457a.tar.gz",
+++            "https://storage.googleapis.com/mirror.tensorflow.org/gist.github.com/npanpaliya/2c30c40969f39fd2905af28262d8aa9b/raw/8476806d9e1654fade629b261d5d988459cb6f8a/eigen-2d540f1b0899a8f7b0d188a5d524ce72dec33329.tar.gz",
+++            "https://gist.github.com/npanpaliya/2c30c40969f39fd2905af28262d8aa9b/raw/8476806d9e1654fade629b261d5d988459cb6f8a/eigen-2d540f1b0899a8f7b0d188a5d524ce72dec33329.tar.gz",
++         ],
++     )
 + 
-+ bool IsInternalStat(absl::optional<int64> stat_type) {
-+-  static const auto* const kInternalStats = new absl::flat_hash_set<int64>{
-++  std::vector<int64> stats = {
-+       StatType::kKernelDetails, StatType::kLevel0,
-+       StatType::kProducerType,  StatType::kProducerId,
-+       StatType::kConsumerType,  StatType::kConsumerId,
-+       StatType::kIsRoot,        StatType::kIsAsync,
-+       StatType::kFlops,         StatType::kBytesAccessed};
-++  static const auto* const kInternalStats = new absl::flat_hash_set<int64>(stats.begin(), stats.end());
-+   return stat_type.has_value() && kInternalStats->contains(*stat_type);
-+ }
++diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
++index 9c980a9..b0c7ad1 100644
++--- a/third_party/tensorrt/tensorrt_configure.bzl
+++++ b/third_party/tensorrt/tensorrt_configure.bzl
++@@ -101,6 +101,8 @@ def _create_local_tensorrt_repository(repository_ctx):
 + 
++     # Copy the library and header files.
++     libraries = [lib_name(lib, cpu_value, trt_version) for lib in _TF_TENSORRT_LIBS]
+++    libraries.append("libmyelin.so.1")
+++    libraries.append("libmyelin.so.1.0.0")
++     library_dir = config["tensorrt_library_dir"] + "/"
++     headers = _get_tensorrt_headers(trt_version)
++     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
 +1.8.3.1
 +
