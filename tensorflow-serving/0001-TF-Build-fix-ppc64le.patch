@@ -1,13 +1,15 @@
-From 1ae39c7675b641c750933246bdaf42c14040775f Mon Sep 17 00:00:00 2001
+From 140cc344520568703d0969d457b24ce28e300a03 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Tue, 24 Nov 2020 12:45:37 +0000
-Subject: [PATCH] Build fix for ppc64le
+Date: Wed, 25 Nov 2020 14:17:38 +0000
+Subject: [PATCH] Fix for TF
 
 ---
- WORKSPACE                                       |  1 +
- third_party/tensorflow/BUILD                    |  0
- third_party/tensorflow/tensorflow_patches.patch | 46 +++++++++++++++++++++++++
- 3 files changed, 47 insertions(+)
+ WORKSPACE                                          |  1 +
+ .../0001-Fixes-for-TF-2.4-to-be-built.patch        | 46 ++++++++++++++++++++++
+ third_party/tensorflow/BUILD                       |  0
+ third_party/tensorflow/tensorflow_patches.patch    | 45 +++++++++++++++++++++
+ 4 files changed, 92 insertions(+)
+ create mode 100644 third_party/tensorflow/0001-Fixes-for-TF-2.4-to-be-built.patch
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
@@ -23,24 +25,21 @@ index 57ed650..47cc49d 100644
  )
  
  load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-diff --git a/third_party/tensorflow/BUILD b/third_party/tensorflow/BUILD
+diff --git a/third_party/tensorflow/0001-Fixes-for-TF-2.4-to-be-built.patch b/third_party/tensorflow/0001-Fixes-for-TF-2.4-to-be-built.patch
 new file mode 100644
-index 0000000..e69de29
-diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
-new file mode 100644
-index 0000000..ea42322
+index 0000000..44ef49c
 --- /dev/null
-+++ b/third_party/tensorflow/tensorflow_patches.patch
++++ b/third_party/tensorflow/0001-Fixes-for-TF-2.4-to-be-built.patch
 @@ -0,0 +1,46 @@
-+From a3375f0ac1222c76e6ab8057ec03c2817da2d697 Mon Sep 17 00:00:00 2001
++From 846ddd5c6d60921e968a7d0ca8d4bb6072b3fe00 Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Tue, 24 Nov 2020 12:34:37 +0000
++Date: Tue, 24 Nov 2020 11:42:20 +0000
 +Subject: [PATCH] Fixes for TF 2.4 to be built
 +
 +---
 + tensorflow/workspace.bzl                    | 8 ++++----
-+ third_party/tensorrt/tensorrt_configure.bzl | 2 ++
-+ 2 files changed, 6 insertions(+), 4 deletions(-)
++ third_party/tensorrt/tensorrt_configure.bzl | 2 +-
++ 2 files changed, 5 insertions(+), 5 deletions(-)
 +
 +diff --git a/tensorflow/workspace.bzl b/tensorflow/workspace.bzl
 +index a6ea009..463d1b0 100755
@@ -63,15 +62,69 @@ index 0000000..ea42322
 +     )
 + 
 +diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
-+index 9c980a9..b0c7ad1 100644
++index 9c980a9..8212f87 100644
 +--- a/third_party/tensorrt/tensorrt_configure.bzl
 ++++ b/third_party/tensorrt/tensorrt_configure.bzl
-+@@ -101,6 +101,8 @@ def _create_local_tensorrt_repository(repository_ctx):
++@@ -24,7 +24,7 @@ _TF_TENSORRT_CONFIG_REPO = "TF_TENSORRT_CONFIG_REPO"
++ _TF_TENSORRT_VERSION = "TF_TENSORRT_VERSION"
++ _TF_NEED_TENSORRT = "TF_NEED_TENSORRT"
++ 
++-_TF_TENSORRT_LIBS = ["nvinfer", "nvinfer_plugin"]
+++_TF_TENSORRT_LIBS = ["nvinfer", "nvinfer_plugin", "myelin"]
++ _TF_TENSORRT_HEADERS = ["NvInfer.h", "NvUtils.h", "NvInferPlugin.h"]
++ _TF_TENSORRT_HEADERS_V6 = [
++     "NvInfer.h",
++-- 
++1.8.3.1
++
+diff --git a/third_party/tensorflow/BUILD b/third_party/tensorflow/BUILD
+new file mode 100644
+index 0000000..e69de29
+diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
+new file mode 100644
+index 0000000..2f4352e
+--- /dev/null
++++ b/third_party/tensorflow/tensorflow_patches.patch
+@@ -0,0 +1,45 @@
++From 50886e6323a880a0a53caa61607ad6b3e878d5c5 Mon Sep 17 00:00:00 2001
++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
++Date: Wed, 25 Nov 2020 14:16:38 +0000
++Subject: [PATCH] Fixes for TF 2.4 to be built
++
++---
++ tensorflow/workspace.bzl                    | 8 ++++----
++ third_party/tensorrt/tensorrt_configure.bzl | 1 +
++ 2 files changed, 5 insertions(+), 4 deletions(-)
++
++diff --git a/tensorflow/workspace.bzl b/tensorflow/workspace.bzl
++index a6ea009..463d1b0 100755
++--- a/tensorflow/workspace.bzl
+++++ b/tensorflow/workspace.bzl
++@@ -198,11 +198,11 @@ def tf_repositories(path_prefix = "", tf_repo_name = ""):
++         name = "eigen_archive",
++         build_file = clean_dep("//third_party:eigen.BUILD"),
++         patch_file = clean_dep("//third_party/eigen3:gpu_packet_math.patch"),
++-        sha256 = "e807a6a6f3a0e8ab10adeb59bb5a9bbb113e8e1684f9b4b32f73f58fd758b4cf",  # SHARED_EIGEN_SHA
++-        strip_prefix = "eigen-011e0db31d1bed8b7f73662be6d57d9f30fa457a",
+++        sha256 = "6e1a98ef330cf359015404b2191a816c1cd3a8a2b457ed239a2e258337c4488d",  # SHARED_EIGEN_SHA
+++        strip_prefix = "eigen-revert-matrix-enhance",
++         urls = [
++-            "https://storage.googleapis.com/mirror.tensorflow.org/gitlab.com/libeigen/eigen/-/archive/011e0db31d1bed8b7f73662be6d57d9f30fa457a/eigen-011e0db31d1bed8b7f73662be6d57d9f30fa457a.tar.gz",
++-            "https://gitlab.com/libeigen/eigen/-/archive/011e0db31d1bed8b7f73662be6d57d9f30fa457a/eigen-011e0db31d1bed8b7f73662be6d57d9f30fa457a.tar.gz",
+++            "https://storage.googleapis.com/mirror.tensorflow.org/gist.github.com/npanpaliya/2c30c40969f39fd2905af28262d8aa9b/raw/8476806d9e1654fade629b261d5d988459cb6f8a/eigen-2d540f1b0899a8f7b0d188a5d524ce72dec33329.tar.gz",
+++            "https://gist.github.com/npanpaliya/2c30c40969f39fd2905af28262d8aa9b/raw/8476806d9e1654fade629b261d5d988459cb6f8a/eigen-2d540f1b0899a8f7b0d188a5d524ce72dec33329.tar.gz",
++         ],
++     )
++ 
++diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
++index 9c980a9..fe1830f 100644
++--- a/third_party/tensorrt/tensorrt_configure.bzl
+++++ b/third_party/tensorrt/tensorrt_configure.bzl
++@@ -101,6 +101,7 @@ def _create_local_tensorrt_repository(repository_ctx):
 + 
 +     # Copy the library and header files.
 +     libraries = [lib_name(lib, cpu_value, trt_version) for lib in _TF_TENSORRT_LIBS]
 ++    libraries.append("libmyelin.so.1")
-++    libraries.append("libmyelin.so.1.0.0")
 +     library_dir = config["tensorrt_library_dir"] + "/"
 +     headers = _get_tensorrt_headers(trt_version)
 +     include_dir = config["tensorrt_include_dir"] + "/"
