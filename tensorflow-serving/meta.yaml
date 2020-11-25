@@ -28,6 +28,7 @@ requirements:
    - libtool
    - make
    - libgcc                 # [x86_64 and build_type == 'cuda']
+   - git >=2.2
   host:
    - libevent {{ libevent }}
    - bazel {{ bazel }}
