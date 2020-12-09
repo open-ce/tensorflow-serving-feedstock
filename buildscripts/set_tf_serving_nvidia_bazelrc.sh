@@ -47,23 +47,27 @@ if [[ $CUDA_VERSION == '11' ]]; then
     CUDA_OPTION_1+=',compute_80'
 fi
 
-
 cat > $BAZEL_RC_DIR/nvidia_components_configure.bazelrc << EOF
 build --config=cuda
 build --copt=-fPIC
-build:tensorrt --action_env TF_NEED_TENSORRT=1
-build --config=tensorrt
 build --action_env TF_NEED_CUDA=1
-build --action_env TF_NEED_TENSORRT=1
 build --action_env TF_CUDA_VERSION=$CUDA_VERSION"
 build --action_env TF_CUDNN_VERSION="${cudnn:0:1}" #First digit only
-build --action_env TF_TENSORRT_VERSION="${tensorrt:0:1}"
 build --action_env TF_NCCL_VERSION="${nccl:0:1}"
 build --action_env TF_CUDA_PATHS="$CUDA_TOOLKIT_PATH"
 build --action_env CUDA_TOOLKIT_PATH="$CUDA_TOOLKIT_PATH"
 build --action_env TF_CUDA_COMPUTE_CAPABILITIES="${CUDA_OPTION_1}"
 build --action_env GCC_HOST_COMPILER_PATH="${CC}"
 EOF
+
+PY_VER=$2
+
+if [[ $PY_VER < 3.8 ]]; then
+cat >> $BAZEL_RC_DIR/nvidia_components_configure.bazelrc << EOF
+build --config=tensorrt
+build --action_env TF_TENSORRT_VERSION="${tensorrt:0:1}"
+EOF
+fi
 
 cat > $BAZEL_RC_DIR/tensorflow-serving.bazelrc << EOF
 import %workspace%/tensorflow_serving/nvidia_components_configure.bazelrc

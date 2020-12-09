@@ -34,7 +34,7 @@ requirements:
    - bazel {{ bazel }}
    - cudnn {{ cudnn }}                 # [build_type == 'cuda']
    - nccl {{ nccl }}                   # [build_type == 'cuda']
-   - tensorrt {{ tensorrt }}           # [build_type == 'cuda']
+   - tensorrt {{ tensorrt }}           # [build_type == 'cuda' and py<38]
    - numpy {{ numpy }}
    - grpcio {{ grpcio }}
    - python {{ python }}
@@ -45,7 +45,7 @@ requirements:
    - cudatoolkit {{ cudatoolkit }}   # [build_type == 'cuda']
    - cudnn {{ cudnn }}               # [build_type == 'cuda']
    - nccl {{ nccl }}                 # [build_type == 'cuda']
-   - tensorrt {{ tensorrt }}         # [build_type == 'cuda']
+   - tensorrt {{ tensorrt }}         # [build_type == 'cuda' and py<38]
 
 about:
   home: https://www.tensorflow.org/tfx/guide/serving
