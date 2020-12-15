@@ -1,4 +1,4 @@
-{% set version = "2.3.0" %}
+{% set version = "2.4.0" %}
 
 package:
    name: tensorflow-serving
@@ -6,13 +6,13 @@ package:
 
 source:
    git_url: https://github.com/tensorflow/serving.git
-   git_rev: {{ version }}
+   git_rev: {{ version }}-rc4
    patches:
      - 0000-tensorflow_patches.patch         # [x86_64]
      - 0001-TF-Build-fix-ppc64le.patch       # [ppc64le]
  
 build:
-  number: 4
+  number: 1
   string: {{ build_type }}_py{{ python | replace(".", "") }}_{{ PKG_BUILDNUM }} # [build_type == 'cpu'] 
   string: {{ build_type }}{{ cudatoolkit | replace(".*", "") }}_py{{ python | replace(".", "") }}_{{ PKG_BUILDNUM }} # [build_type == 'cuda']
 {% if build_type == 'cuda' %}
@@ -28,12 +28,13 @@ requirements:
    - libtool
    - make
    - libgcc                 # [x86_64 and build_type == 'cuda']
+   - git >=2.2
   host:
    - libevent {{ libevent }}
    - bazel {{ bazel }}
    - cudnn {{ cudnn }}                 # [build_type == 'cuda']
    - nccl {{ nccl }}                   # [build_type == 'cuda']
-   - tensorrt {{ tensorrt }}           # [build_type == 'cuda']
+   - tensorrt {{ tensorrt }}           # [build_type == 'cuda' and py<38]
    - numpy {{ numpy }}
    - grpcio {{ grpcio }}
    - python {{ python }}
@@ -44,7 +45,7 @@ requirements:
    - cudatoolkit {{ cudatoolkit }}   # [build_type == 'cuda']
    - cudnn {{ cudnn }}               # [build_type == 'cuda']
    - nccl {{ nccl }}                 # [build_type == 'cuda']
-   - tensorrt {{ tensorrt }}         # [build_type == 'cuda']
+   - tensorrt {{ tensorrt }}         # [build_type == 'cuda' and py<38]
 
 about:
   home: https://www.tensorflow.org/tfx/guide/serving
