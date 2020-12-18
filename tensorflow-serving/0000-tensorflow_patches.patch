@@ -1,13 +1,13 @@
-From 2c47d9ef3617438241c8e3c1c900a2fd54669bf7 Mon Sep 17 00:00:00 2001
+From 2e98243c5c9e77fe6bc61ef8db76ac3f676ff9f2 Mon Sep 17 00:00:00 2001
 From: Deepali Chourasia <deepali@us.ibm.com>
-Date: Thu, 17 Dec 2020 17:53:56 +0000
+Date: Fri, 18 Dec 2020 05:44:28 +0000
 Subject: [PATCH] Patches for TF 2.4
 
 ---
  WORKSPACE                                       |   1 +
  third_party/tensorflow/BUILD                    |   0
- third_party/tensorflow/tensorflow_patches.patch | 189 ++++++++++++++++++++++++
- 3 files changed, 190 insertions(+)
+ third_party/tensorflow/tensorflow_patches.patch | 182 ++++++++++++++++++++++++
+ 3 files changed, 183 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
@@ -28,43 +28,36 @@ new file mode 100644
 index 0000000..e69de29
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 0000000..8c4f744
+index 0000000..0707494
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,189 @@
-+From 35638d5a57b1f85134d3731bd187b290934116b2 Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,182 @@
++From 4bc378807dc11e444e4d00ce2a94b0fbe709f5d3 Mon Sep 17 00:00:00 2001
 +From: Deepali Chourasia <deepali@us.ibm.com>
-+Date: Thu, 17 Dec 2020 17:52:52 +0000
++Date: Fri, 18 Dec 2020 05:43:20 +0000
 +Subject: [PATCH] TF 2.4 patches
 +
 +---
-+ .bazelrc                                           |  4 ++
-+ tensorflow/tensorflow.bzl                          |  2 +
++ tensorflow/tensorflow.bzl                          |  4 +-
 + .../com_google_absl_fix_mac_and_nvcc_build.patch   | 45 +++++++++++++---------
 + third_party/gpus/find_cuda_config.py               |  2 +
 + third_party/tensorrt/BUILD.tpl                     |  1 +
 + third_party/tensorrt/tensorrt_configure.bzl        |  2 +
-+ 6 files changed, 38 insertions(+), 18 deletions(-)
++ 5 files changed, 35 insertions(+), 19 deletions(-)
 +
-+diff --git a/.bazelrc b/.bazelrc
-+index aaf1e10..c5a329b 100644
-+--- a/.bazelrc
-++++ b/.bazelrc
-+@@ -99,6 +99,10 @@ build:libc++ --action_env=PATH
-+ build:libc++ --define force_libcpp=enabled
-+ build:libc++ --linkopt -fuse-ld=lld
-+ 
-++build:opt --copt=-DNO_CONSTEXPR_FOR_YOU=1
-++build:opt --host_copt=-DNO_CONSTEXPR_FOR_YOU=1
-++
-++
-+ # Android configs. Bazel needs to have --cpu and --fat_apk_cpu both set to the
-+ # target CPU to build transient dependencies correctly. See
-+ # https://docs.bazel.build/versions/master/user-manual.html#flag--fat_apk_cpu
 +diff --git a/tensorflow/tensorflow.bzl b/tensorflow/tensorflow.bzl
-+index 096cdd1..125c998 100644
++index 096cdd1..a93cc16 100644
 +--- a/tensorflow/tensorflow.bzl
 ++++ b/tensorflow/tensorflow.bzl
++@@ -335,7 +335,7 @@ def tf_copts(
++         if_enable_mkl(["-DENABLE_MKL"]) +
++         if_ngraph(["-DINTEL_NGRAPH=1"]) +
++         if_android_arm(["-mfpu=neon"]) +
++-        if_linux_x86_64(["-msse3"]) +
+++        if_linux_x86_64(["-msse3", "-DNO_CONSTEXPR_FOR_YOU=1"]) +
++         if_ios_x86_64(["-msse4.1"]) +
++         select({
++             clean_dep("//tensorflow:framework_shared_object"): [],
 +@@ -868,6 +868,7 @@ def tf_gen_op_wrappers_cc(
 +             clean_dep("//tensorflow/core:portable_tensorflow_lib"),
 +         ]),
