@@ -1,18 +1,18 @@
-From 2e98243c5c9e77fe6bc61ef8db76ac3f676ff9f2 Mon Sep 17 00:00:00 2001
-From: Deepali Chourasia <deepali@us.ibm.com>
-Date: Fri, 18 Dec 2020 05:44:28 +0000
+From 8f4ca4817835616e52c6be5037c34c6bc1a6dd95 Mon Sep 17 00:00:00 2001
+From: Nishidha Panpaliya <npanpa23@in.ibm.com>
+Date: Tue, 5 Jan 2021 08:20:02 +0000
 Subject: [PATCH] Patches for TF 2.4
 
 ---
- WORKSPACE                                       |   1 +
- third_party/tensorflow/BUILD                    |   0
- third_party/tensorflow/tensorflow_patches.patch | 182 ++++++++++++++++++++++++
- 3 files changed, 183 insertions(+)
+ WORKSPACE                                     |   1 +
+ third_party/tensorflow/BUILD                  |   0
+ .../tensorflow/tensorflow_patches.patch       | 196 ++++++++++++++++++
+ 3 files changed, 197 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 54d52e2..14a435e 100644
+index 54d52e25..14a435e9 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -13,6 +13,7 @@ tensorflow_http_archive(
@@ -25,28 +25,42 @@ index 54d52e2..14a435e 100644
  load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 diff --git a/third_party/tensorflow/BUILD b/third_party/tensorflow/BUILD
 new file mode 100644
-index 0000000..e69de29
+index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 0000000..0707494
+index 00000000..8033aca8
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,182 @@
-+From 4bc378807dc11e444e4d00ce2a94b0fbe709f5d3 Mon Sep 17 00:00:00 2001
-+From: Deepali Chourasia <deepali@us.ibm.com>
-+Date: Fri, 18 Dec 2020 05:43:20 +0000
+@@ -0,0 +1,196 @@
++From aea0f0147936e79981c59bebcb939145c8b0cade Mon Sep 17 00:00:00 2001
++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
++Date: Tue, 5 Jan 2021 08:18:53 +0000
 +Subject: [PATCH] TF 2.4 patches
 +
 +---
-+ tensorflow/tensorflow.bzl                          |  4 +-
-+ .../com_google_absl_fix_mac_and_nvcc_build.patch   | 45 +++++++++++++---------
-+ third_party/gpus/find_cuda_config.py               |  2 +
-+ third_party/tensorrt/BUILD.tpl                     |  1 +
-+ third_party/tensorrt/tensorrt_configure.bzl        |  2 +
-+ 5 files changed, 35 insertions(+), 19 deletions(-)
++ tensorflow/stream_executor/cuda/BUILD         |  2 +-
++ tensorflow/tensorflow.bzl                     |  4 +-
++ ...m_google_absl_fix_mac_and_nvcc_build.patch | 45 +++++++++++--------
++ third_party/gpus/find_cuda_config.py          |  2 +
++ third_party/tensorrt/BUILD.tpl                |  1 +
++ third_party/tensorrt/tensorrt_configure.bzl   |  2 +
++ 6 files changed, 36 insertions(+), 20 deletions(-)
 +
++diff --git a/tensorflow/stream_executor/cuda/BUILD b/tensorflow/stream_executor/cuda/BUILD
++index 7086217fa8e..9cdd1eedb77 100644
++--- a/tensorflow/stream_executor/cuda/BUILD
+++++ b/tensorflow/stream_executor/cuda/BUILD
++@@ -271,7 +271,7 @@ alias(
++     name = "cublas_lt_lib",
++     actual = select({
++         "//tensorflow:oss": ":cublas_lt_stub",
++-        "//conditions:default": ":empty_lib",
+++        "//conditions:default": "@local_config_cuda//cuda:cublasLt",
++     }),
++     visibility = ["//visibility:public"],
++ )
 +diff --git a/tensorflow/tensorflow.bzl b/tensorflow/tensorflow.bzl
-+index 096cdd1..a93cc16 100644
++index 096cdd17dcb..a93cc168830 100644
 +--- a/tensorflow/tensorflow.bzl
 ++++ b/tensorflow/tensorflow.bzl
 +@@ -335,7 +335,7 @@ def tf_copts(
@@ -75,7 +89,7 @@ index 0000000..0707494
 +         visibility = [clean_dep("//tensorflow:internal")],
 +         compatible_with = compatible_with,
 +diff --git a/third_party/com_google_absl_fix_mac_and_nvcc_build.patch b/third_party/com_google_absl_fix_mac_and_nvcc_build.patch
-+index 6301119..9a7bd8b 100644
++index 6301119ab2c..9a7bd8b4b20 100644
 +--- a/third_party/com_google_absl_fix_mac_and_nvcc_build.patch
 ++++ b/third_party/com_google_absl_fix_mac_and_nvcc_build.patch
 +@@ -1,7 +1,6 @@
@@ -174,7 +188,7 @@ index 0000000..0707494
 ++ #define CONSTEXPR_F constexpr  // function
 ++ #define CONSTEXPR_M constexpr  // member
 +diff --git a/third_party/gpus/find_cuda_config.py b/third_party/gpus/find_cuda_config.py
-+index 80f3430..6a85107 100644
++index 80f343023cd..6a85107a65c 100644
 +--- a/third_party/gpus/find_cuda_config.py
 ++++ b/third_party/gpus/find_cuda_config.py
 +@@ -587,6 +587,8 @@ def find_cuda_config():
@@ -187,7 +201,7 @@ index 0000000..0707494
 +     result.update(
 +         _find_cublas_config(cublas_paths, cublas_version, cuda_version))
 +diff --git a/third_party/tensorrt/BUILD.tpl b/third_party/tensorrt/BUILD.tpl
-+index dfa06ce..0b386f9 100644
++index dfa06ced2ed..0b386f93db4 100644
 +--- a/third_party/tensorrt/BUILD.tpl
 ++++ b/third_party/tensorrt/BUILD.tpl
 +@@ -25,6 +25,7 @@ cc_library(
@@ -199,7 +213,7 @@ index 0000000..0707494
 +     deps = [
 +         ":tensorrt_headers",
 +diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
-+index 9c980a9..deafd2a 100644
++index 9c980a92cf8..deafd2a5a8a 100644
 +--- a/third_party/tensorrt/tensorrt_configure.bzl
 ++++ b/third_party/tensorrt/tensorrt_configure.bzl
 +@@ -101,6 +101,8 @@ def _create_local_tensorrt_repository(repository_ctx):
@@ -212,8 +226,8 @@ index 0000000..0707494
 +     headers = _get_tensorrt_headers(trt_version)
 +     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
-+1.8.3.1
++2.27.0
 +
 -- 
-1.8.3.1
+2.27.0
 
