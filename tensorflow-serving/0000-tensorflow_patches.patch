@@ -1,13 +1,13 @@
-From 8f4ca4817835616e52c6be5037c34c6bc1a6dd95 Mon Sep 17 00:00:00 2001
+From 221d0e3a4026f3d78284c068d6efadd1dd0958e2 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Tue, 5 Jan 2021 08:20:02 +0000
+Date: Wed, 6 Jan 2021 14:27:39 -0500
 Subject: [PATCH] Patches for TF 2.4
 
 ---
  WORKSPACE                                     |   1 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/tensorflow_patches.patch       | 196 ++++++++++++++++++
- 3 files changed, 197 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 300 ++++++++++++++++++
+ 3 files changed, 301 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
@@ -28,24 +28,39 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..8033aca8
+index 00000000..4ccbfff7
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,196 @@
-+From aea0f0147936e79981c59bebcb939145c8b0cade Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,300 @@
++From ea8a5a5ff8a5225858509c8996680a0a543ce307 Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Tue, 5 Jan 2021 08:18:53 +0000
++Date: Wed, 6 Jan 2021 14:26:33 -0500
 +Subject: [PATCH] TF 2.4 patches
 +
 +---
++ .../compiler/mlir/tools/kernel_gen/BUILD      |  1 +
 + tensorflow/stream_executor/cuda/BUILD         |  2 +-
 + tensorflow/tensorflow.bzl                     |  4 +-
 + ...m_google_absl_fix_mac_and_nvcc_build.patch | 45 +++++++++++--------
++ third_party/gpus/cuda/BUILD.tpl               |  8 ++++
++ third_party/gpus/cuda_configure.bzl           | 17 ++++++-
 + third_party/gpus/find_cuda_config.py          |  2 +
 + third_party/tensorrt/BUILD.tpl                |  1 +
 + third_party/tensorrt/tensorrt_configure.bzl   |  2 +
-+ 6 files changed, 36 insertions(+), 20 deletions(-)
++ 9 files changed, 61 insertions(+), 21 deletions(-)
 +
++diff --git a/tensorflow/compiler/mlir/tools/kernel_gen/BUILD b/tensorflow/compiler/mlir/tools/kernel_gen/BUILD
++index 2e402f2be22..d4710bfa0b3 100644
++--- a/tensorflow/compiler/mlir/tools/kernel_gen/BUILD
+++++ b/tensorflow/compiler/mlir/tools/kernel_gen/BUILD
++@@ -95,6 +95,7 @@ tf_cc_binary(
++         "//tensorflow/compiler/mlir/tools/kernel_gen/tests/tf_to_gpu_binary:__pkg__",
++         "//tensorflow/core/kernels/mlir_generated:__pkg__",
++     ],
+++    linkopts = ["-lmemcpy-2.14"],
++     deps = [
++         ":kernel_creator",
++         "//tensorflow/compiler/mlir:init_mlir",
 +diff --git a/tensorflow/stream_executor/cuda/BUILD b/tensorflow/stream_executor/cuda/BUILD
 +index 7086217fa8e..9cdd1eedb77 100644
 +--- a/tensorflow/stream_executor/cuda/BUILD
@@ -187,6 +202,95 @@ index 00000000..8033aca8
 ++ #define CONSTEXPR_D constexpr  // data
 ++ #define CONSTEXPR_F constexpr  // function
 ++ #define CONSTEXPR_M constexpr  // member
++diff --git a/third_party/gpus/cuda/BUILD.tpl b/third_party/gpus/cuda/BUILD.tpl
++index 70eacf82883..5cf0e71ccba 100644
++--- a/third_party/gpus/cuda/BUILD.tpl
+++++ b/third_party/gpus/cuda/BUILD.tpl
++@@ -171,6 +171,13 @@ cc_library(
++     linkstatic = 1,
++ )
++ 
+++cc_library(
+++    name = "memcpy-2.14",
+++    srcs = ["cuda/lib/%{memcpy-2.14_lib}"],
+++    data = ["cuda/lib/%{memcpy-2.14_lib}"],
+++    linkstatic = 1,
+++)
+++
++ cc_library(
++     name = "cuda",
++     deps = [
++@@ -181,6 +188,7 @@ cc_library(
++         ":cudnn",
++         ":cufft",
++         ":curand",
+++        ":memcpy-2.14",
++     ],
++ )
++ 
++diff --git a/third_party/gpus/cuda_configure.bzl b/third_party/gpus/cuda_configure.bzl
++index 3ba34470b93..773ab266ef7 100644
++--- a/third_party/gpus/cuda_configure.bzl
+++++ b/third_party/gpus/cuda_configure.bzl
++@@ -476,6 +476,8 @@ def _lib_path(lib, cpu_value, basedir, version, static):
++     return "%s/%s" % (basedir, file_name)
++ 
++ def _should_check_soname(version, static):
+++    if version == "":
+++        return False
++     return version and not static
++ 
++ def _check_cuda_lib_params(lib, cpu_value, basedir, version, static = False):
++@@ -498,6 +500,9 @@ def _check_cuda_libs(repository_ctx, script_path, libs):
++     cmd += "system('%s script.py %s');" % (python_bin, args)
++ 
++     all_paths = [path for path, _ in libs]
+++    print("cmd to be executed: ", cmd)
+++    print("All paths: ", all_paths)
+++    print("Script path: ", script_path)
++     checked_paths = execute(repository_ctx, [python_bin, "-c", cmd]).stdout.splitlines()
++ 
++     # Filter out empty lines from splitting on '\r\n' on Windows
++@@ -586,6 +591,13 @@ def _find_libs(repository_ctx, check_cuda_libs_script, cuda_config):
++             cuda_config.cudnn_version,
++             static = False,
++         ),
+++        "memcpy-2.14": _check_cuda_lib_params(
+++            "memcpy-2.14",
+++            cpu_value,
+++            cuda_config.config["cudnn_library_dir"],
+++            "",
+++            static = False,
+++        ),
++         "cupti": _check_cuda_lib_params(
++             "cupti",
++             cpu_value,
++@@ -794,6 +806,7 @@ def _create_dummy_repository(repository_ctx):
++             "%{curand_lib}": lib_name("curand", cpu_value),
++             "%{cupti_lib}": lib_name("cupti", cpu_value),
++             "%{cusparse_lib}": lib_name("cusparse", cpu_value),
+++	    "%{memcpy-2.14_lib}": lib_name("memcpy-2.14", cpu_value),
++             "%{cub_actual}": ":cuda_headers",
++             "%{copy_rules}": """
++ filegroup(name="cuda-include")
++@@ -826,7 +839,8 @@ filegroup(name="cudnn-include")
++     repository_ctx.file("cuda/cuda/lib/%s" % lib_name("cufft", cpu_value))
++     repository_ctx.file("cuda/cuda/lib/%s" % lib_name("cupti", cpu_value))
++     repository_ctx.file("cuda/cuda/lib/%s" % lib_name("cusparse", cpu_value))
++-
+++    repository_ctx.file("cuda/cuda/lib/%s" % lib_name("memcpy-2.14", cpu_value))
+++    
++     # Set up cuda_config.h, which is used by
++     # tensorflow/stream_executor/dso_loader.cc.
++     _tpl(
++@@ -1165,6 +1179,7 @@ def _create_local_cuda_repository(repository_ctx):
++             "%{curand_lib}": _basename(repository_ctx, cuda_libs["curand"]),
++             "%{cupti_lib}": _basename(repository_ctx, cuda_libs["cupti"]),
++             "%{cusparse_lib}": _basename(repository_ctx, cuda_libs["cusparse"]),
+++	    "%{memcpy-2.14_lib}": _basename(repository_ctx, cuda_libs["memcpy-2.14"]),
++             "%{cub_actual}": cub_actual,
++             "%{copy_rules}": "\n".join(copy_rules),
++         },
 +diff --git a/third_party/gpus/find_cuda_config.py b/third_party/gpus/find_cuda_config.py
 +index 80f343023cd..6a85107a65c 100644
 +--- a/third_party/gpus/find_cuda_config.py
@@ -226,8 +330,8 @@ index 00000000..8033aca8
 +     headers = _get_tensorrt_headers(trt_version)
 +     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
-+2.27.0
++2.23.0
 +
 -- 
-2.27.0
+2.23.0
 

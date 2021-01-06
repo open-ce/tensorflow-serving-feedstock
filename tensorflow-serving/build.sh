@@ -39,7 +39,7 @@ if [ "${build_type}" = "mkl" ]; then
 fi
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PREFIX}/lib
-
+ln -s ${PREFIX}/lib/libmemcpy-2.14.so ${PREFIX}/lib64/libmemcpy-2.14.so
 bazel clean --expunge
 bazel shutdown
 
