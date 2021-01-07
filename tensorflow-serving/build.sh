@@ -20,6 +20,9 @@ if [[ $build_type == "cuda" ]]
 then
   # Pick up the CUDA and CUDNN environment
   $SCRIPT_DIR/set_tf_serving_nvidia_bazelrc.sh $SRC_DIR/tensorflow_serving $PY_VER
+
+  # Create symlink of libmemcpy-2.14.so from where it can be picked up by TF build
+  ln -s ${PREFIX}/lib/libmemcpy-2.14.so ${PREFIX}/lib64/libmemcpy-2.14.so
 fi
 
 # Build the bazelrc
@@ -39,7 +42,6 @@ if [ "${build_type}" = "mkl" ]; then
 fi
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PREFIX}/lib
-ln -s ${PREFIX}/lib/libmemcpy-2.14.so ${PREFIX}/lib64/libmemcpy-2.14.so
 bazel clean --expunge
 bazel shutdown
 
