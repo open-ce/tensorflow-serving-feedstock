@@ -1,13 +1,13 @@
-From 221d0e3a4026f3d78284c068d6efadd1dd0958e2 Mon Sep 17 00:00:00 2001
+From 606c027615250dde0f0e725801f6e67bb1356ad3 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Wed, 6 Jan 2021 14:27:39 -0500
+Date: Thu, 7 Jan 2021 07:12:21 -0500
 Subject: [PATCH] Patches for TF 2.4
 
 ---
  WORKSPACE                                     |   1 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/tensorflow_patches.patch       | 300 ++++++++++++++++++
- 3 files changed, 301 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 305 ++++++++++++++++++
+ 3 files changed, 306 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
@@ -28,17 +28,17 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..4ccbfff7
+index 00000000..9bfc1155
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,300 @@
-+From ea8a5a5ff8a5225858509c8996680a0a543ce307 Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,305 @@
++From 69d042292e28375ec6189aa30925475a40b7443e Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Wed, 6 Jan 2021 14:26:33 -0500
++Date: Thu, 7 Jan 2021 07:11:38 -0500
 +Subject: [PATCH] TF 2.4 patches
 +
 +---
-+ .../compiler/mlir/tools/kernel_gen/BUILD      |  1 +
++ .../core/platform/default/build_config/BUILD  |  4 ++
 + tensorflow/stream_executor/cuda/BUILD         |  2 +-
 + tensorflow/tensorflow.bzl                     |  4 +-
 + ...m_google_absl_fix_mac_and_nvcc_build.patch | 45 +++++++++++--------
@@ -47,20 +47,25 @@ index 00000000..4ccbfff7
 + third_party/gpus/find_cuda_config.py          |  2 +
 + third_party/tensorrt/BUILD.tpl                |  1 +
 + third_party/tensorrt/tensorrt_configure.bzl   |  2 +
-+ 9 files changed, 61 insertions(+), 21 deletions(-)
++ 9 files changed, 64 insertions(+), 21 deletions(-)
 +
-+diff --git a/tensorflow/compiler/mlir/tools/kernel_gen/BUILD b/tensorflow/compiler/mlir/tools/kernel_gen/BUILD
-+index 2e402f2be22..d4710bfa0b3 100644
-+--- a/tensorflow/compiler/mlir/tools/kernel_gen/BUILD
-++++ b/tensorflow/compiler/mlir/tools/kernel_gen/BUILD
-+@@ -95,6 +95,7 @@ tf_cc_binary(
-+         "//tensorflow/compiler/mlir/tools/kernel_gen/tests/tf_to_gpu_binary:__pkg__",
-+         "//tensorflow/core/kernels/mlir_generated:__pkg__",
-+     ],
-++    linkopts = ["-lmemcpy-2.14"],
++diff --git a/tensorflow/core/platform/default/build_config/BUILD b/tensorflow/core/platform/default/build_config/BUILD
++index 83eadf2c460..c6e4621c0a7 100644
++--- a/tensorflow/core/platform/default/build_config/BUILD
+++++ b/tensorflow/core/platform/default/build_config/BUILD
++@@ -199,8 +199,12 @@ cc_library(
++             "-Wl,-rpath,../local_config_cuda/cuda/extras/CUPTI/lib",
++         ],
++         "//conditions:default": [
+++	    "-lmemcpy-2.14",
+++	    "-Lbazel-out/host/bin/external/local_config_cuda/cuda/cuda/lib",
++             "-Wl,-rpath,../local_config_cuda/cuda/lib64",
++             "-Wl,-rpath,../local_config_cuda/cuda/extras/CUPTI/lib64",
+++	    "-Wl,-rpath,bazel-out/host/bin/external/local_config_cuda/cuda/cuda/lib",
+++
++         ],
++     }),
 +     deps = [
-+         ":kernel_creator",
-+         "//tensorflow/compiler/mlir:init_mlir",
 +diff --git a/tensorflow/stream_executor/cuda/BUILD b/tensorflow/stream_executor/cuda/BUILD
 +index 7086217fa8e..9cdd1eedb77 100644
 +--- a/tensorflow/stream_executor/cuda/BUILD
