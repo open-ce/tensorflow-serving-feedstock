@@ -36,6 +36,7 @@ requirements:
    - cudnn {{ cudnn }}                 # [build_type == 'cuda']
    - nccl {{ nccl }}                   # [build_type == 'cuda']
    - tensorrt {{ tensorrt }}           # [build_type == 'cuda' and py<38]
+   - libmemcpy_wrapper                 # [x86_64 and build_type == 'cuda' and cudatoolkit=='11.0']
    - numpy {{ numpy }}
    - grpcio {{ grpcio }}
    - python {{ python }}
@@ -47,6 +48,7 @@ requirements:
    - cudnn {{ cudnn }}               # [build_type == 'cuda']
    - nccl {{ nccl }}                 # [build_type == 'cuda']
    - tensorrt {{ tensorrt }}         # [build_type == 'cuda' and py<38]
+   - libmemcpy_wrapper                 # [x86_64 and build_type == 'cuda' and cudatoolkit=='11.0']
 
 about:
   home: https://www.tensorflow.org/tfx/guide/serving
