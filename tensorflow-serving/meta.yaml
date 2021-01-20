@@ -9,7 +9,7 @@ source:
    git_rev: {{ version }}
    patches:
      - 0000a-tensorflow_patches.patch        # [x86_64]
-     - 0000b-Add-memcpy-wrapper-patch.patch  # [x86_64 and build_type == 'cuda' and py<38]
+     - 0000b-Add-memcpy-wrapper-patch.patch  # [x86_64 and build_type == 'cuda' and ((cudatoolkit=='10.2' and py<38) or (cudatoolkit=='11.0'))]
      - 0001-TF-Build-fix-ppc64le.patch       # [ppc64le]
  
 build:
