@@ -1,0 +1,203 @@
+From 73da0fedced765025dd51146b144bfd4232a8e77 Mon Sep 17 00:00:00 2001
+From: Jason Furmanek <furmanek@us.ibm.com>
+Date: Tue, 19 Jan 2021 21:48:50 +0000
+Subject: [PATCH] Add memcpy wrapper patch
+
+---
+ third_party/tensorflow/tensorflow_patches.patch | 115 +++++++++++++++++++-----
+ 1 file changed, 91 insertions(+), 24 deletions(-)
+
+diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
+index baf9956..ea91185 100644
+--- a/third_party/tensorflow/tensorflow_patches.patch
++++ b/third_party/tensorflow/tensorflow_patches.patch
+@@ -1,27 +1,29 @@
+-From 6fd5dab2461f2ec595983b91dbf121451c84f756 Mon Sep 17 00:00:00 2001
+-From: Jason Furmanek <furmanek@us.ibm.com>
+-Date: Tue, 19 Jan 2021 21:03:44 +0000
+-Subject: [PATCH] tensorflow_patches_no_memcpy
++From f31d6a6ad09757250f88f331003c07034bc7e019 Mon Sep 17 00:00:00 2001
++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
++Date: Thu, 7 Jan 2021 08:47:01 -0500
++Subject: [PATCH] TF 2.4 patches - add memcpy wrapper
+ 
+ ---
+- .../core/platform/default/build_config/BUILD       |  3 ++
+- tensorflow/stream_executor/cuda/BUILD              |  2 +-
+- tensorflow/tensorflow.bzl                          |  4 +-
+- .../com_google_absl_fix_mac_and_nvcc_build.patch   | 45 +++++++++++++---------
+- third_party/gpus/cuda_configure.bzl                |  2 +
+- third_party/gpus/find_cuda_config.py               |  2 +
+- third_party/tensorrt/BUILD.tpl                     |  1 +
+- third_party/tensorrt/tensorrt_configure.bzl        |  1 +
+- 8 files changed, 40 insertions(+), 20 deletions(-)
++ .../core/platform/default/build_config/BUILD  |  4 ++
++ tensorflow/stream_executor/cuda/BUILD         |  2 +-
++ tensorflow/tensorflow.bzl                     |  4 +-
++ ...m_google_absl_fix_mac_and_nvcc_build.patch | 45 +++++++++++--------
++ third_party/gpus/cuda/BUILD.tpl               |  8 ++++
++ third_party/gpus/cuda_configure.bzl           | 12 +++++
++ third_party/gpus/find_cuda_config.py          |  2 +
++ third_party/tensorrt/BUILD.tpl                |  1 +
++ third_party/tensorrt/tensorrt_configure.bzl   |  2 +
++ 9 files changed, 60 insertions(+), 20 deletions(-)
+ 
+ diff --git a/tensorflow/core/platform/default/build_config/BUILD b/tensorflow/core/platform/default/build_config/BUILD
+-index 83eadf2..b0e4c89 100644
++index 83eadf2c460..b17542c0fc6 100644
+ --- a/tensorflow/core/platform/default/build_config/BUILD
+ +++ b/tensorflow/core/platform/default/build_config/BUILD
+-@@ -199,8 +199,11 @@ cc_library(
++@@ -199,8 +199,12 @@ cc_library(
+              "-Wl,-rpath,../local_config_cuda/cuda/extras/CUPTI/lib",
+          ],
+          "//conditions:default": [
+++            "-lmemcpy-2.14",
+ +            "-Lbazel-out/host/bin/external/local_config_cuda/cuda/cuda/lib",
+              "-Wl,-rpath,../local_config_cuda/cuda/lib64",
+              "-Wl,-rpath,../local_config_cuda/cuda/extras/CUPTI/lib64",
+@@ -31,7 +33,7 @@ index 83eadf2..b0e4c89 100644
+      }),
+      deps = [
+ diff --git a/tensorflow/stream_executor/cuda/BUILD b/tensorflow/stream_executor/cuda/BUILD
+-index 7086217..9cdd1ee 100644
++index 7086217fa8e..9cdd1eedb77 100644
+ --- a/tensorflow/stream_executor/cuda/BUILD
+ +++ b/tensorflow/stream_executor/cuda/BUILD
+ @@ -271,7 +271,7 @@ alias(
+@@ -44,7 +46,7 @@ index 7086217..9cdd1ee 100644
+      visibility = ["//visibility:public"],
+  )
+ diff --git a/tensorflow/tensorflow.bzl b/tensorflow/tensorflow.bzl
+-index 096cdd1..a93cc16 100644
++index 096cdd17dcb..a93cc168830 100644
+ --- a/tensorflow/tensorflow.bzl
+ +++ b/tensorflow/tensorflow.bzl
+ @@ -335,7 +335,7 @@ def tf_copts(
+@@ -73,7 +75,7 @@ index 096cdd1..a93cc16 100644
+          visibility = [clean_dep("//tensorflow:internal")],
+          compatible_with = compatible_with,
+ diff --git a/third_party/com_google_absl_fix_mac_and_nvcc_build.patch b/third_party/com_google_absl_fix_mac_and_nvcc_build.patch
+-index 6301119..9a7bd8b 100644
++index 6301119ab2c..9a7bd8b4b20 100644
+ --- a/third_party/com_google_absl_fix_mac_and_nvcc_build.patch
+ +++ b/third_party/com_google_absl_fix_mac_and_nvcc_build.patch
+ @@ -1,7 +1,6 @@
+@@ -171,8 +173,34 @@ index 6301119..9a7bd8b 100644
+ + #define CONSTEXPR_D constexpr  // data
+ + #define CONSTEXPR_F constexpr  // function
+ + #define CONSTEXPR_M constexpr  // member
++diff --git a/third_party/gpus/cuda/BUILD.tpl b/third_party/gpus/cuda/BUILD.tpl
++index 70eacf82883..5cf0e71ccba 100644
++--- a/third_party/gpus/cuda/BUILD.tpl
+++++ b/third_party/gpus/cuda/BUILD.tpl
++@@ -171,6 +171,13 @@ cc_library(
++     linkstatic = 1,
++ )
++ 
+++cc_library(
+++    name = "memcpy-2.14",
+++    srcs = ["cuda/lib/%{memcpy-2.14_lib}"],
+++    data = ["cuda/lib/%{memcpy-2.14_lib}"],
+++    linkstatic = 1,
+++)
+++
++ cc_library(
++     name = "cuda",
++     deps = [
++@@ -181,6 +188,7 @@ cc_library(
++         ":cudnn",
++         ":cufft",
++         ":curand",
+++        ":memcpy-2.14",
++     ],
++ )
++ 
+ diff --git a/third_party/gpus/cuda_configure.bzl b/third_party/gpus/cuda_configure.bzl
+-index 3ba3447..3629be1 100644
++index 3ba34470b93..f29b2d13e41 100644
+ --- a/third_party/gpus/cuda_configure.bzl
+ +++ b/third_party/gpus/cuda_configure.bzl
+ @@ -476,6 +476,8 @@ def _lib_path(lib, cpu_value, basedir, version, static):
+@@ -184,8 +212,46 @@ index 3ba3447..3629be1 100644
+      return version and not static
+  
+  def _check_cuda_lib_params(lib, cpu_value, basedir, version, static = False):
++@@ -586,6 +588,13 @@ def _find_libs(repository_ctx, check_cuda_libs_script, cuda_config):
++             cuda_config.cudnn_version,
++             static = False,
++         ),
+++        "memcpy-2.14": _check_cuda_lib_params(
+++            "memcpy-2.14",
+++            cpu_value,
+++            cuda_config.config["cudnn_library_dir"],
+++            "",
+++            static = False,
+++        ),
++         "cupti": _check_cuda_lib_params(
++             "cupti",
++             cpu_value,
++@@ -794,6 +803,7 @@ def _create_dummy_repository(repository_ctx):
++             "%{curand_lib}": lib_name("curand", cpu_value),
++             "%{cupti_lib}": lib_name("cupti", cpu_value),
++             "%{cusparse_lib}": lib_name("cusparse", cpu_value),
+++            "%{memcpy-2.14_lib}": lib_name("memcpy-2.14", cpu_value),
++             "%{cub_actual}": ":cuda_headers",
++             "%{copy_rules}": """
++ filegroup(name="cuda-include")
++@@ -826,6 +836,7 @@ filegroup(name="cudnn-include")
++     repository_ctx.file("cuda/cuda/lib/%s" % lib_name("cufft", cpu_value))
++     repository_ctx.file("cuda/cuda/lib/%s" % lib_name("cupti", cpu_value))
++     repository_ctx.file("cuda/cuda/lib/%s" % lib_name("cusparse", cpu_value))
+++    repository_ctx.file("cuda/cuda/lib/%s" % lib_name("memcpy-2.14", cpu_value))
++
++     # Set up cuda_config.h, which is used by
++     # tensorflow/stream_executor/dso_loader.cc.
++@@ -1165,6 +1176,7 @@ def _create_local_cuda_repository(repository_ctx):
++             "%{curand_lib}": _basename(repository_ctx, cuda_libs["curand"]),
++             "%{cupti_lib}": _basename(repository_ctx, cuda_libs["cupti"]),
++             "%{cusparse_lib}": _basename(repository_ctx, cuda_libs["cusparse"]),
+++            "%{memcpy-2.14_lib}": _basename(repository_ctx, cuda_libs["memcpy-2.14"]),
++             "%{cub_actual}": cub_actual,
++             "%{copy_rules}": "\n".join(copy_rules),
++         },
+ diff --git a/third_party/gpus/find_cuda_config.py b/third_party/gpus/find_cuda_config.py
+-index 80f3430..6a85107 100644
++index 80f343023cd..6a85107a65c 100644
+ --- a/third_party/gpus/find_cuda_config.py
+ +++ b/third_party/gpus/find_cuda_config.py
+ @@ -587,6 +587,8 @@ def find_cuda_config():
+@@ -198,7 +264,7 @@ index 80f3430..6a85107 100644
+      result.update(
+          _find_cublas_config(cublas_paths, cublas_version, cuda_version))
+ diff --git a/third_party/tensorrt/BUILD.tpl b/third_party/tensorrt/BUILD.tpl
+-index dfa06ce..0b386f9 100644
++index dfa06ced2ed..0b386f93db4 100644
+ --- a/third_party/tensorrt/BUILD.tpl
+ +++ b/third_party/tensorrt/BUILD.tpl
+ @@ -25,6 +25,7 @@ cc_library(
+@@ -210,17 +276,18 @@ index dfa06ce..0b386f9 100644
+      deps = [
+          ":tensorrt_headers",
+ diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
+-index 9c980a9..fe1830f 100644
++index 9c980a92cf8..deafd2a5a8a 100644
+ --- a/third_party/tensorrt/tensorrt_configure.bzl
+ +++ b/third_party/tensorrt/tensorrt_configure.bzl
+-@@ -101,6 +101,7 @@ def _create_local_tensorrt_repository(repository_ctx):
++@@ -101,6 +101,8 @@ def _create_local_tensorrt_repository(repository_ctx):
+  
+      # Copy the library and header files.
+      libraries = [lib_name(lib, cpu_value, trt_version) for lib in _TF_TENSORRT_LIBS]
+++    libraries.append("libmemcpy-2.14.so")
+ +    libraries.append("libmyelin.so.1")
+      library_dir = config["tensorrt_library_dir"] + "/"
+      headers = _get_tensorrt_headers(trt_version)
+      include_dir = config["tensorrt_include_dir"] + "/"
+ -- 
+-1.8.3.1
++2.23.0
+ 
+-- 
+1.8.3.1
+

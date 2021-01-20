@@ -19,6 +19,9 @@ set -vex
 
 SCRIPT_DIR=$RECIPE_DIR/../buildscripts
 
+# Determine architecture for specific settings
+ARCH=`uname -p`
+
 # Pick up additional variables defined from the conda build environment
 $SCRIPT_DIR/set_python_path_for_bazelrc.sh $SRC_DIR/tensorflow_serving
 if [[ $build_type == "cuda" ]]
@@ -26,8 +29,12 @@ then
   # Pick up the CUDA and CUDNN environment
   $SCRIPT_DIR/set_tf_serving_nvidia_bazelrc.sh $SRC_DIR/tensorflow_serving $PY_VER
 
-  # Create symlink of libmemcpy-2.14.so from where it can be picked up by TF build
-  ln -s ${PREFIX}/lib/libmemcpy-2.14.so ${PREFIX}/lib64/libmemcpy-2.14.so
+  if [[ "${ARCH}" == 'x86_64' ]] && [[ $PY_VER < 3.8 ]]; then
+    # Create symlink of libmemcpy-2.14.so from where it can be picked up by TF build
+    # Avoid this for Python3.8 since this is related to TensorRT and TensorRT is
+    # not available for Py38 yet.
+    ln -s ${PREFIX}/lib/libmemcpy-2.14.so ${PREFIX}/lib64/libmemcpy-2.14.so
+  fi
 fi
 
 # Build the bazelrc
