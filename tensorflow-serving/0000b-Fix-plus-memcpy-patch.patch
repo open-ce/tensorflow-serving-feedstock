@@ -1,18 +1,18 @@
-From af8da946395bf8d9b911c84f3a2e3b7977a00390 Mon Sep 17 00:00:00 2001
+From 73de5bdaba2f6952dab6f6dc2f2a5db6117c23f0 Mon Sep 17 00:00:00 2001
 From: Jason Furmanek <furmanek@us.ibm.com>
-Date: Mon, 1 Feb 2021 19:27:28 +0000
+Date: Mon, 1 Feb 2021 21:14:59 +0000
 Subject: [PATCH] Fix plus memcpy patch
 
 ---
  WORKSPACE                                          |   1 +
  third_party/tensorflow/BUILD                       |   0
- .../tensorflow/Fix-plus-memcpy-wrapper-patch.patch | 285 +++++++++++++++++++++
- 3 files changed, 286 insertions(+)
+ .../tensorflow/Fix-plus-memcpy-wrapper-patch.patch | 293 +++++++++++++++++++++
+ 3 files changed, 294 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/Fix-plus-memcpy-wrapper-patch.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 34ce956..abf387e 100644
+index 34ce956..5fa7164 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -13,6 +13,7 @@ tensorflow_http_archive(
@@ -28,13 +28,13 @@ new file mode 100644
 index 0000000..e69de29
 diff --git a/third_party/tensorflow/Fix-plus-memcpy-wrapper-patch.patch b/third_party/tensorflow/Fix-plus-memcpy-wrapper-patch.patch
 new file mode 100644
-index 0000000..b008001
+index 0000000..1b335c1
 --- /dev/null
 +++ b/third_party/tensorflow/Fix-plus-memcpy-wrapper-patch.patch
-@@ -0,0 +1,285 @@
-+From cf3f5a95182d691a59d8dce341c9fd7d6a33ca84 Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,293 @@
++From 7fdf54e7652c90938fa55388a304c9961b0d388a Mon Sep 17 00:00:00 2001
 +From: Jason Furmanek <furmanek@us.ibm.com>
-+Date: Mon, 1 Feb 2021 19:22:15 +0000
++Date: Mon, 1 Feb 2021 21:05:14 +0000
 +Subject: [PATCH] Fix plus memcpy wrapper patch
 +
 +---
@@ -43,11 +43,11 @@ index 0000000..b008001
 + tensorflow/tensorflow.bzl                          |  4 +-
 + .../com_google_absl_fix_mac_and_nvcc_build.patch   | 45 +++++++++++++---------
 + third_party/gpus/cuda/BUILD.tpl                    |  8 ++++
-+ third_party/gpus/cuda_configure.bzl                | 11 ++++++
++ third_party/gpus/cuda_configure.bzl                | 12 ++++++
 + third_party/gpus/find_cuda_config.py               |  2 +
 + third_party/tensorrt/BUILD.tpl                     |  1 +
 + third_party/tensorrt/tensorrt_configure.bzl        |  2 +
-+ 9 files changed, 59 insertions(+), 20 deletions(-)
++ 9 files changed, 60 insertions(+), 20 deletions(-)
 +
 +diff --git a/tensorflow/core/platform/default/build_config/BUILD b/tensorflow/core/platform/default/build_config/BUILD
 +index 83eadf2..b17542c 100644
@@ -234,7 +234,7 @@ index 0000000..b008001
 + )
 + 
 +diff --git a/third_party/gpus/cuda_configure.bzl b/third_party/gpus/cuda_configure.bzl
-+index 3ba3447..b17b754 100644
++index 3ba3447..f29b2d1 100644
 +--- a/third_party/gpus/cuda_configure.bzl
 ++++ b/third_party/gpus/cuda_configure.bzl
 +@@ -476,6 +476,8 @@ def _lib_path(lib, cpu_value, basedir, version, static):
@@ -276,6 +276,14 @@ index 0000000..b008001
 + 
 +     # Set up cuda_config.h, which is used by
 +     # tensorflow/stream_executor/dso_loader.cc.
++@@ -1165,6 +1176,7 @@ def _create_local_cuda_repository(repository_ctx):
++             "%{curand_lib}": _basename(repository_ctx, cuda_libs["curand"]),
++             "%{cupti_lib}": _basename(repository_ctx, cuda_libs["cupti"]),
++             "%{cusparse_lib}": _basename(repository_ctx, cuda_libs["cusparse"]),
+++            "%{memcpy-2.14_lib}": _basename(repository_ctx, cuda_libs["memcpy-2.14"]),
++             "%{cub_actual}": cub_actual,
++             "%{copy_rules}": "\n".join(copy_rules),
++         },
 +diff --git a/third_party/gpus/find_cuda_config.py b/third_party/gpus/find_cuda_config.py
 +index 80f3430..6a85107 100644
 +--- a/third_party/gpus/find_cuda_config.py
