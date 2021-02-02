@@ -1,6 +1,6 @@
-From eba0ffd5445c9d191942d6821c869e81245eee9a Mon Sep 17 00:00:00 2001
+From 007cde2ce01c776849f74b719930128865a55abc Mon Sep 17 00:00:00 2001
 From: Jason Furmanek <furmanek@us.ibm.com>
-Date: Mon, 1 Feb 2021 18:56:21 +0000
+Date: Tue, 2 Feb 2021 01:24:05 +0000
 Subject: [PATCH] TF Build fix x86-64
 
 ---
@@ -12,17 +12,17 @@ Subject: [PATCH] TF Build fix x86-64
  create mode 100644 third_party/tensorflow/TF-Build-fix-x86-64.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 34ce956..d9e6e09 100644
+index 34ce956..b75886a 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
-@@ -21,6 +21,7 @@ http_archive(
-     name = "rules_pkg",
-     sha256 = "352c090cc3d3f9a6b4e676cf42a6047c16824959b438895a76c2989c6d7c246a",
-     url = "https://github.com/bazelbuild/rules_pkg/releases/download/0.2.5/rules_pkg-0.2.5.tar.gz",
+@@ -13,6 +13,7 @@ tensorflow_http_archive(
+     name = "org_tensorflow",
+     sha256 = "ac2d19cf529f9c2c9faaf87e472d08a2bdbb2ab058958e2cafd65e5eb0637b2b",
+     git_commit = "85c8b2a817f95a3e979ecd1ed95bff1dc1335cff",
 +    patch = "//third_party/tensorflow:TF-Build-fix-x86-64.patch",
  )
  
- load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
+ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 diff --git a/third_party/tensorflow/BUILD b/third_party/tensorflow/BUILD
 new file mode 100644
 index 0000000..e69de29
