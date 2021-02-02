@@ -1,4 +1,4 @@
-{% set version = "2.4.0" %}
+{% set version = "2.4.1" %}
 
 package:
    name: tensorflow-serving-api
@@ -11,7 +11,7 @@ source:
      - 0001-Replace-k8-with-ppc-for-Power-builds.patch # [ppc64le]
 
 build:
-  number: 2
+  number: 1
   noarch: python
 
 requirements:

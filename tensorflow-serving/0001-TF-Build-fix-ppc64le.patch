@@ -1,7 +1,7 @@
-From 6284fed982c2692c2634a3026719b50330b1c356 Mon Sep 17 00:00:00 2001
-From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Wed, 16 Dec 2020 14:44:01 +0000
-Subject: [PATCH] Fix for TF
+From 5b851c480c2843b701a6c8a46e4aeed905dc202b Mon Sep 17 00:00:00 2001
+From: Jason Furmanek <furmanek@us.ibm.com>
+Date: Mon, 1 Feb 2021 15:50:55 +0000
+Subject: [PATCH] TF Build fix ppc64le
 
 ---
  WORKSPACE                                     |  1 +
@@ -12,13 +12,13 @@ Subject: [PATCH] Fix for TF
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 54d52e25..14a435e9 100644
+index 34ce9565..e1356527 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -13,6 +13,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "9c94bfec7214853750c7cacebd079348046f246ec0174d01cd36eda375117628",
-     git_commit = "582c8d236cb079023657287c318ff26adb239002",
+     sha256 = "ac2d19cf529f9c2c9faaf87e472d08a2bdbb2ab058958e2cafd65e5eb0637b2b",
+     git_commit = "85c8b2a817f95a3e979ecd1ed95bff1dc1335cff",
 +    patch = "//third_party/tensorflow:tensorflow_patches.patch",
  )
  
@@ -66,13 +66,13 @@ index 00000000..5911e5e4
 +         patch_file = clean_dep("//third_party/eigen3:gpu_packet_math.patch"),
 +-        sha256 = "e807a6a6f3a0e8ab10adeb59bb5a9bbb113e8e1684f9b4b32f73f58fd758b4cf",  # SHARED_EIGEN_SHA
 +-        strip_prefix = "eigen-011e0db31d1bed8b7f73662be6d57d9f30fa457a",
-++        sha256 = "6e1a98ef330cf359015404b2191a816c1cd3a8a2b457ed239a2e258337c4488d",  # SHARED_EIGEN_SHA
-++        strip_prefix = "eigen-revert-matrix-enhance",
+++        sha256 = "5b6c58d367794c76b5ad54effc60d295450958f98b7506966a29d0e45d7b066d",  # SHARED_EIGEN_SHA
+++        strip_prefix = "libeigen-eigen-revert-matrix-enhance",
 +         urls = [
 +-            "https://storage.googleapis.com/mirror.tensorflow.org/gitlab.com/libeigen/eigen/-/archive/011e0db31d1bed8b7f73662be6d57d9f30fa457a/eigen-011e0db31d1bed8b7f73662be6d57d9f30fa457a.tar.gz",
 +-            "https://gitlab.com/libeigen/eigen/-/archive/011e0db31d1bed8b7f73662be6d57d9f30fa457a/eigen-011e0db31d1bed8b7f73662be6d57d9f30fa457a.tar.gz",
-++            "https://storage.googleapis.com/mirror.tensorflow.org/gist.github.com/npanpaliya/2c30c40969f39fd2905af28262d8aa9b/raw/8476806d9e1654fade629b261d5d988459cb6f8a/eigen-2d540f1b0899a8f7b0d188a5d524ce72dec33329.tar.gz",
-++            "https://gist.github.com/npanpaliya/2c30c40969f39fd2905af28262d8aa9b/raw/8476806d9e1654fade629b261d5d988459cb6f8a/eigen-2d540f1b0899a8f7b0d188a5d524ce72dec33329.tar.gz",
+++            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/open-ce/libeigen-eigen/archive/revert-matrix-enhance.zip",
+++            "https://github.com/open-ce/libeigen-eigen/archive/revert-matrix-enhance.zip",
 +         ],
 +     )
 + 
@@ -92,5 +92,5 @@ index 00000000..5911e5e4
 +2.18.4
 +
 -- 
-2.18.4
+2.23.0
 
