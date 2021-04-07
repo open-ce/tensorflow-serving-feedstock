@@ -1,18 +1,18 @@
-From 5b851c480c2843b701a6c8a46e4aeed905dc202b Mon Sep 17 00:00:00 2001
+From ffbeae77985607173b2077fe15fdd07eda8d8f6e Mon Sep 17 00:00:00 2001
 From: Jason Furmanek <furmanek@us.ibm.com>
-Date: Mon, 1 Feb 2021 15:50:55 +0000
+Date: Tue, 6 Apr 2021 15:00:01 -0500
 Subject: [PATCH] TF Build fix ppc64le
 
 ---
- WORKSPACE                                     |  1 +
- third_party/tensorflow/BUILD                  |  0
- .../tensorflow/tensorflow_patches.patch       | 59 +++++++++++++++++++
- 3 files changed, 60 insertions(+)
+ WORKSPACE                                       |   1 +
+ third_party/tensorflow/BUILD                    |   0
+ third_party/tensorflow/tensorflow_patches.patch | 114 ++++++++++++++++++++++++
+ 3 files changed, 115 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 34ce9565..e1356527 100644
+index 34ce956..e135652 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -13,6 +13,7 @@ tensorflow_http_archive(
@@ -25,26 +25,27 @@ index 34ce9565..e1356527 100644
  load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 diff --git a/third_party/tensorflow/BUILD b/third_party/tensorflow/BUILD
 new file mode 100644
-index 00000000..e69de29b
+index 0000000..e69de29
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..5911e5e4
+index 0000000..6828d1c
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,59 @@
-+From dd3c16d7de88d6f80446fd9a80373dc7fa733990 Mon Sep 17 00:00:00 2001
-+From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Wed, 16 Dec 2020 14:43:10 +0000
-+Subject: [PATCH] Fixes for TF 2.4 to be built
+@@ -0,0 +1,114 @@
++From 4180c728e0a4caffd2e38131d7f459cb8ab0637f Mon Sep 17 00:00:00 2001
++From: Jason Furmanek <furmanek@us.ibm.com>
++Date: Tue, 6 Apr 2021 14:47:49 -0500
++Subject: [PATCH] tensorflow patches
 +
 +---
-+ tensorflow/stream_executor/cuda/BUILD       | 2 +-
-+ tensorflow/workspace.bzl                    | 8 ++++----
-+ third_party/tensorrt/tensorrt_configure.bzl | 1 +
-+ 3 files changed, 6 insertions(+), 5 deletions(-)
++ tensorflow/stream_executor/cuda/BUILD       |  2 +-
++ tensorflow/workspace.bzl                    |  8 ++++----
++ third_party/gpus/cuda_configure.bzl         | 29 +++++++++++++++++++++++++++++
++ third_party/tensorrt/tensorrt_configure.bzl |  1 +
++ 4 files changed, 35 insertions(+), 5 deletions(-)
 +
 +diff --git a/tensorflow/stream_executor/cuda/BUILD b/tensorflow/stream_executor/cuda/BUILD
-+index 7086217fa8e..9cdd1eedb77 100644
++index 7086217..9cdd1ee 100644
 +--- a/tensorflow/stream_executor/cuda/BUILD
 ++++ b/tensorflow/stream_executor/cuda/BUILD
 +@@ -271,7 +271,7 @@ alias(
@@ -57,7 +58,7 @@ index 00000000..5911e5e4
 +     visibility = ["//visibility:public"],
 + )
 +diff --git a/tensorflow/workspace.bzl b/tensorflow/workspace.bzl
-+index 3397d1070d1..397da4d3ad6 100755
++index 89062b1..386d94c 100755
 +--- a/tensorflow/workspace.bzl
 ++++ b/tensorflow/workspace.bzl
 +@@ -198,11 +198,11 @@ def tf_repositories(path_prefix = "", tf_repo_name = ""):
@@ -76,8 +77,62 @@ index 00000000..5911e5e4
 +         ],
 +     )
 + 
++diff --git a/third_party/gpus/cuda_configure.bzl b/third_party/gpus/cuda_configure.bzl
++index 3ba3447..e272a28 100644
++--- a/third_party/gpus/cuda_configure.bzl
+++++ b/third_party/gpus/cuda_configure.bzl
++@@ -51,6 +51,7 @@ load(
++     "read_dir",
++     "realpath",
++     "which",
+++    "files_exist",
++ )
++ 
++ _GCC_HOST_COMPILER_PATH = "GCC_HOST_COMPILER_PATH"
++@@ -330,6 +331,30 @@ def auto_configure_fail(msg):
++ 
++ # END cc_configure common functions (see TODO above).
++ 
+++# TODO: Below code isn't tested with platforms other than linux ppc64le and x86_64
+++def _get_cuda_extra_target_path(repository_ctx, cuda_config): 
+++    cuda_extra_path = ""
+++    if cuda_config.cpu_value == "Linux":
+++        os_name = "linux"
+++
+++    cpu = "x86_64"
+++    machine_type = repository_ctx.execute(["bash", "-c", "uname -p"]).stdout
+++    if (machine_type.startswith("ppc") or
+++        machine_type.startswith("powerpc")):
+++        cpu = "ppc64le"
+++    elif machine_type.startswith("s390x"):
+++        cpu = "s390x"
+++    elif machine_type.startswith("aarch64"):
+++        cpu = "aarch64"
+++    elif machine_type.startswith("arm"):
+++        cpu = "arm"
+++    
+++    extra_path = cuda_config.cuda_toolkit_path + "/targets/" + cpu + "-" + os_name + "/include"
+++    if files_exist(repository_ctx, [extra_path]) == [True]:
+++        cuda_extra_path = realpath(repository_ctx, extra_path)
+++    
+++    return cuda_extra_path
+++   
++ def _cuda_include_path(repository_ctx, cuda_config):
++     """Generates the Starlark string with cuda include directories.
++ 
++@@ -362,6 +387,10 @@ def _cuda_include_path(repository_ctx, cuda_config):
++     if target_dir != "":
++         inc_entries.append(realpath(repository_ctx, target_dir))
++     inc_entries.append(realpath(repository_ctx, cuda_config.cuda_toolkit_path + "/include"))
+++
+++    extra_cuda_path = _get_cuda_extra_target_path(repository_ctx, cuda_config)
+++    if extra_cuda_path != "":
+++        inc_entries.append(extra_cuda_path)
++     return inc_entries
++ 
++ def enable_cuda(repository_ctx):
 +diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
-+index 9c980a92cf8..fe1830fc9d0 100644
++index 9c980a9..fe1830f 100644
 +--- a/third_party/tensorrt/tensorrt_configure.bzl
 ++++ b/third_party/tensorrt/tensorrt_configure.bzl
 +@@ -101,6 +101,7 @@ def _create_local_tensorrt_repository(repository_ctx):
@@ -89,8 +144,8 @@ index 00000000..5911e5e4
 +     headers = _get_tensorrt_headers(trt_version)
 +     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
-+2.18.4
++1.8.3.1
 +
 -- 
-2.23.0
+1.8.3.1
 
