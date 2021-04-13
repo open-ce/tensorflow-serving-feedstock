@@ -13,7 +13,7 @@ source:
      - 0001-TF-Build-fix-ppc64le.patch       # [ppc64le]
  
 build:
-  number: 1
+  number: 2
   string: {{ build_type }}_py{{ python | replace(".", "") }}_{{ PKG_BUILDNUM }} # [build_type == 'cpu'] 
   string: {{ build_type }}{{ cudatoolkit | replace(".*", "") }}_py{{ python | replace(".", "") }}_{{ PKG_BUILDNUM }} # [build_type == 'cuda']
 {% if build_type == 'cuda' %}
@@ -44,7 +44,7 @@ requirements:
   run:
    - libevent {{ libevent }}
    - grpcio {{ grpcio }}
-   - protobuf {{ protobuf }}
+   - protobuf 3.9                    # currently tf-serving only works with pb 3.9
    - cudatoolkit {{ cudatoolkit }}   # [build_type == 'cuda']
    - cudnn {{ cudnn }}               # [build_type == 'cuda']
    - nccl {{ nccl }}                 # [build_type == 'cuda']

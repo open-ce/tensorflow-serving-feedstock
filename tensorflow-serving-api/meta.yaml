@@ -11,7 +11,7 @@ source:
      - 0001-Replace-k8-with-ppc-for-Power-builds.patch # [ppc64le]
 
 build:
-  number: 1
+  number: 2
   noarch: python
 
 requirements:
@@ -23,11 +23,11 @@ requirements:
    - python # noarch package; don't tie to specific python version
    - numpy {{ numpy }}
    - grpcio {{ grpcio }}
-   - protobuf {{ protobuf }}
+   - protobuf 3.9 # currently tf-serving only works with pb 3.9
   run:
    - python # noarch package; don't tie to specific python version
    - grpcio {{ grpcio }}
-   - protobuf {{ protobuf }}
+   - protobuf 3.9 # currently tf-serving only works with pb 3.9
 
 about:
   home: https://www.tensorflow.org/tfx/guide/serving
