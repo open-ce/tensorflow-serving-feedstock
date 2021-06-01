@@ -1,18 +1,18 @@
-From a032df821755a8b98ea7c4af900872db0dde573c Mon Sep 17 00:00:00 2001
+From 40e0eef82a19e8d15f40576e4d28e0bf918d62fa Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Tue, 1 Jun 2021 03:19:05 -0500
+Date: Tue, 1 Jun 2021 12:16:36 -0400
 Subject: [PATCH] TF 2.5 build fix ppc64le
 
 ---
- WORKSPACE                                     |   1 +
- third_party/tensorflow/BUILD                  |   0
- .../tensorflow/tensorflow_patches.patch       | 215 ++++++++++++++++++
- 3 files changed, 216 insertions(+)
+ WORKSPACE                                       |   1 +
+ third_party/tensorflow/BUILD                    |   0
+ third_party/tensorflow/tensorflow_patches.patch | 227 ++++++++++++++++++++++++
+ 3 files changed, 228 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 79ca7f29..c02b8d4a 100644
+index 79ca7f2..c02b8d4 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -17,6 +17,7 @@ tensorflow_http_archive(
@@ -25,31 +25,32 @@ index 79ca7f29..c02b8d4a 100644
  # Import all of TensorFlow Serving's external dependencies.
 diff --git a/third_party/tensorflow/BUILD b/third_party/tensorflow/BUILD
 new file mode 100644
-index 00000000..e69de29b
+index 0000000..e69de29
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..56f9f8ef
+index 0000000..e70535b
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,215 @@
-+From 22a4ebd641aff6bef9b9435abfa1d58beb7b69b3 Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,227 @@
++From 2a7d6ac9f5598c67717ddb2c6464db1ca94af58c Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Tue, 1 Jun 2021 03:17:28 -0500
++Date: Tue, 1 Jun 2021 12:15:29 -0400
 +Subject: [PATCH] tensoflow patches
 +
 +---
-+ .../core/platform/default/build_config/BUILD  |  2 +
-+ tensorflow/core/platform/default/cord.h       |  5 +++
-+ .../core/profiler/utils/xplane_utils.cc       |  3 +-
-+ tensorflow/python/lib/core/ndarray_tensor.cc  |  2 +-
-+ tensorflow/stream_executor/cuda/BUILD         |  2 +-
-+ third_party/gpus/cuda/BUILD.tpl               |  8 ++++
-+ third_party/gpus/cuda_configure.bzl           | 40 +++++++++++++++++++
-+ third_party/tensorrt/tensorrt_configure.bzl   |  1 +
-+ 8 files changed, 60 insertions(+), 3 deletions(-)
++ .../core/platform/default/build_config/BUILD       |  2 ++
++ tensorflow/core/platform/default/cord.h            |  5 +++
++ tensorflow/core/profiler/utils/xplane_utils.cc     |  3 +-
++ tensorflow/python/lib/core/ndarray_tensor.cc       |  2 +-
++ tensorflow/stream_executor/cuda/BUILD              |  2 +-
++ third_party/cub.BUILD                              |  2 +-
++ third_party/gpus/cuda/BUILD.tpl                    |  8 +++++
++ third_party/gpus/cuda_configure.bzl                | 40 ++++++++++++++++++++++
++ third_party/tensorrt/tensorrt_configure.bzl        |  1 +
++ 9 files changed, 61 insertions(+), 4 deletions(-)
 +
 +diff --git a/tensorflow/core/platform/default/build_config/BUILD b/tensorflow/core/platform/default/build_config/BUILD
-+index 9746e6e5222..359f756043e 100644
++index 9746e6e..359f756 100644
 +--- a/tensorflow/core/platform/default/build_config/BUILD
 ++++ b/tensorflow/core/platform/default/build_config/BUILD
 +@@ -212,8 +212,10 @@ cc_library(
@@ -64,7 +65,7 @@ index 00000000..56f9f8ef
 +     }),
 +     deps = [
 +diff --git a/tensorflow/core/platform/default/cord.h b/tensorflow/core/platform/default/cord.h
-+index cdfab1e5da9..febd6fa08ba 100644
++index cdfab1e..febd6fa 100644
 +--- a/tensorflow/core/platform/default/cord.h
 ++++ b/tensorflow/core/platform/default/cord.h
 +@@ -16,7 +16,12 @@ limitations under the License.
@@ -81,7 +82,7 @@ index 00000000..56f9f8ef
 ++
 + #endif  // TENSORFLOW_CORE_PLATFORM_DEFAULT_CORD_H_
 +diff --git a/tensorflow/core/profiler/utils/xplane_utils.cc b/tensorflow/core/profiler/utils/xplane_utils.cc
-+index 5b7d22ce22f..bcaff8e634a 100644
++index 5b7d22c..bcaff8e 100644
 +--- a/tensorflow/core/profiler/utils/xplane_utils.cc
 ++++ b/tensorflow/core/profiler/utils/xplane_utils.cc
 +@@ -101,7 +101,8 @@ const XPlane* FindPlaneWithName(const XSpace& space, absl::string_view name) {
@@ -95,7 +96,7 @@ index 00000000..56f9f8ef
 +       FindAll(space.planes(), [&names_set](const XPlane* plane) {
 +         return names_set.contains(plane->name());
 +diff --git a/tensorflow/python/lib/core/ndarray_tensor.cc b/tensorflow/python/lib/core/ndarray_tensor.cc
-+index 6cf51ceebbd..b7bd5a87c89 100644
++index 6cf51ce..b7bd5a8 100644
 +--- a/tensorflow/python/lib/core/ndarray_tensor.cc
 ++++ b/tensorflow/python/lib/core/ndarray_tensor.cc
 +@@ -16,7 +16,7 @@ limitations under the License.
@@ -108,7 +109,7 @@ index 00000000..56f9f8ef
 + #include "tensorflow/c/eager/tfe_context_internal.h"
 + #include "tensorflow/c/tf_tensor_internal.h"
 +diff --git a/tensorflow/stream_executor/cuda/BUILD b/tensorflow/stream_executor/cuda/BUILD
-+index a43963b5e6c..3b2e10b5b97 100644
++index a43963b..3b2e10b 100644
 +--- a/tensorflow/stream_executor/cuda/BUILD
 ++++ b/tensorflow/stream_executor/cuda/BUILD
 +@@ -268,7 +268,7 @@ alias(
@@ -120,24 +121,35 @@ index 00000000..56f9f8ef
 +     }),
 +     visibility = ["//visibility:public"],
 + )
++diff --git a/third_party/cub.BUILD b/third_party/cub.BUILD
++index 581d8dd..c446f05 100644
++--- a/third_party/cub.BUILD
+++++ b/third_party/cub.BUILD
++@@ -11,5 +11,5 @@ exports_files(["LICENSE.TXT"])
++ cc_library(
++     name = "cub",
++     hdrs = glob(["cub/**"]),
++-    deps = ["@local_cuda//:cuda_headers"],
+++    deps = ["@local_config_cuda//cuda:cuda_headers"],
++ )
 +diff --git a/third_party/gpus/cuda/BUILD.tpl b/third_party/gpus/cuda/BUILD.tpl
-+index 8f783e58d66..3590ce32dae 100644
++index 8f783e5..3590ce3 100644
 +--- a/third_party/gpus/cuda/BUILD.tpl
 ++++ b/third_party/gpus/cuda/BUILD.tpl
-+@@ -75,6 +75,13 @@ cc_library(
-+     srcs = ["cuda/lib/%{cuda_driver_lib}"],
++@@ -76,6 +76,13 @@ cc_library(
 + )
 + 
-++cc_library(
++ cc_library(
 ++    name = "nvrtc",
 ++    srcs = ["cuda/lib/%{nvrtc_lib}"],
 ++    data = ["cuda/lib/%{nvrtc_lib}"],
 ++    linkstatic = 1,
 ++)
 ++
-+ cc_library(
+++cc_library(
 +     name = "cudart",
 +     srcs = ["cuda/lib/%{cudart_lib}"],
++     data = ["cuda/lib/%{cudart_lib}"],
 +@@ -188,6 +195,7 @@ cc_library(
 +         ":cudnn",
 +         ":cufft",
@@ -147,7 +159,7 @@ index 00000000..56f9f8ef
 + )
 + 
 +diff --git a/third_party/gpus/cuda_configure.bzl b/third_party/gpus/cuda_configure.bzl
-+index 867cab46c26..3d1dd11c587 100644
++index 867cab4..3d1dd11 100644
 +--- a/third_party/gpus/cuda_configure.bzl
 ++++ b/third_party/gpus/cuda_configure.bzl
 +@@ -51,6 +51,7 @@ load(
@@ -233,7 +245,7 @@ index 00000000..56f9f8ef
 +             "%{copy_rules}": "\n".join(copy_rules),
 +         },
 +diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
-+index 8b28f57fb36..e4aed19e819 100644
++index 8b28f57..e4aed19 100644
 +--- a/third_party/tensorrt/tensorrt_configure.bzl
 ++++ b/third_party/tensorrt/tensorrt_configure.bzl
 +@@ -116,6 +116,7 @@ def _create_local_tensorrt_repository(repository_ctx):
@@ -245,8 +257,8 @@ index 00000000..56f9f8ef
 +     headers = _get_tensorrt_headers(trt_version)
 +     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
-+2.23.0
++1.8.3.1
 +
 -- 
-2.23.0
+1.8.3.1
 
