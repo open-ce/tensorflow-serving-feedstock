@@ -1,59 +1,64 @@
-From 73de5bdaba2f6952dab6f6dc2f2a5db6117c23f0 Mon Sep 17 00:00:00 2001
-From: Jason Furmanek <furmanek@us.ibm.com>
-Date: Mon, 1 Feb 2021 21:14:59 +0000
+From 2c397cb907ce8d65309dd7a472d8e09208b141a8 Mon Sep 17 00:00:00 2001
+From: Nishidha Panpaliya <npanpa23@in.ibm.com>
+Date: Tue, 1 Jun 2021 09:53:39 -0400
 Subject: [PATCH] Fix plus memcpy patch
 
 ---
  WORKSPACE                                          |   1 +
  third_party/tensorflow/BUILD                       |   0
- .../tensorflow/Fix-plus-memcpy-wrapper-patch.patch | 293 +++++++++++++++++++++
- 3 files changed, 294 insertions(+)
+ .../tensorflow/Fix-plus-memcpy-wrapper-patch.patch | 278 +++++++++++++++++++++
+ 3 files changed, 279 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/Fix-plus-memcpy-wrapper-patch.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 34ce956..5fa7164 100644
+index 79ca7f2..813aacb 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
-@@ -13,6 +13,7 @@ tensorflow_http_archive(
+@@ -17,6 +17,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "ac2d19cf529f9c2c9faaf87e472d08a2bdbb2ab058958e2cafd65e5eb0637b2b",
-     git_commit = "85c8b2a817f95a3e979ecd1ed95bff1dc1335cff",
+     sha256 = "cb99f136dc5c89143669888a44bfdd134c086e1e2d9e36278c1eb0f03fe62d76",
+     git_commit = "a4dfb8d1a71385bd6d122e4f27f86dcebb96712d",
 +    patch = "//third_party/tensorflow:Fix-plus-memcpy-wrapper-patch.patch",
  )
  
- load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+ # Import all of TensorFlow Serving's external dependencies.
 diff --git a/third_party/tensorflow/BUILD b/third_party/tensorflow/BUILD
 new file mode 100644
 index 0000000..e69de29
 diff --git a/third_party/tensorflow/Fix-plus-memcpy-wrapper-patch.patch b/third_party/tensorflow/Fix-plus-memcpy-wrapper-patch.patch
 new file mode 100644
-index 0000000..1b335c1
+index 0000000..99f2bda
 --- /dev/null
 +++ b/third_party/tensorflow/Fix-plus-memcpy-wrapper-patch.patch
-@@ -0,0 +1,293 @@
-+From 7fdf54e7652c90938fa55388a304c9961b0d388a Mon Sep 17 00:00:00 2001
-+From: Jason Furmanek <furmanek@us.ibm.com>
-+Date: Mon, 1 Feb 2021 21:05:14 +0000
+@@ -0,0 +1,278 @@
++From f10e088e871dd399f9ae94ba6bd37c033ed5cb31 Mon Sep 17 00:00:00 2001
++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
++Date: Tue, 1 Jun 2021 09:36:42 -0400
 +Subject: [PATCH] Fix plus memcpy wrapper patch
 +
 +---
-+ .../core/platform/default/build_config/BUILD       |  4 ++
++ .../core/platform/default/build_config/BUILD       |  4 ++++
++ tensorflow/core/platform/default/cord.h            |  5 ++++
++ tensorflow/core/profiler/utils/xplane_utils.cc     |  3 ++-
++ tensorflow/python/lib/core/ndarray_tensor.cc       |  2 +-
 + tensorflow/stream_executor/cuda/BUILD              |  2 +-
-+ tensorflow/tensorflow.bzl                          |  4 +-
-+ .../com_google_absl_fix_mac_and_nvcc_build.patch   | 45 +++++++++++++---------
-+ third_party/gpus/cuda/BUILD.tpl                    |  8 ++++
-+ third_party/gpus/cuda_configure.bzl                | 12 ++++++
-+ third_party/gpus/find_cuda_config.py               |  2 +
++ tensorflow/tensorflow.bzl                          |  2 ++
++ third_party/cub.BUILD                              |  2 +-
++ third_party/eigen3/eigen.patch                     | 28 ++++++++++++++++++++++
++ third_party/eigen3/workspace.bzl                   |  1 +
++ third_party/gpus/cuda/BUILD.tpl                    |  8 +++++++
++ third_party/gpus/cuda_configure.bzl                | 12 ++++++++++
 + third_party/tensorrt/BUILD.tpl                     |  1 +
-+ third_party/tensorrt/tensorrt_configure.bzl        |  2 +
-+ 9 files changed, 60 insertions(+), 20 deletions(-)
++ third_party/tensorrt/tensorrt_configure.bzl        |  2 ++
++ 13 files changed, 68 insertions(+), 4 deletions(-)
++ create mode 100644 third_party/eigen3/eigen.patch
 +
 +diff --git a/tensorflow/core/platform/default/build_config/BUILD b/tensorflow/core/platform/default/build_config/BUILD
-+index 83eadf2..b17542c 100644
++index 9746e6e..4bf9bc8 100644
 +--- a/tensorflow/core/platform/default/build_config/BUILD
 ++++ b/tensorflow/core/platform/default/build_config/BUILD
-+@@ -199,8 +199,12 @@ cc_library(
++@@ -212,8 +212,12 @@ cc_library(
 +             "-Wl,-rpath,../local_config_cuda/cuda/extras/CUPTI/lib",
 +         ],
 +         "//conditions:default": [
@@ -66,11 +71,55 @@ index 0000000..1b335c1
 +         ],
 +     }),
 +     deps = [
++diff --git a/tensorflow/core/platform/default/cord.h b/tensorflow/core/platform/default/cord.h
++index cdfab1e..febd6fa 100644
++--- a/tensorflow/core/platform/default/cord.h
+++++ b/tensorflow/core/platform/default/cord.h
++@@ -16,7 +16,12 @@ limitations under the License.
++ #ifndef TENSORFLOW_CORE_PLATFORM_DEFAULT_CORD_H_
++ #define TENSORFLOW_CORE_PLATFORM_DEFAULT_CORD_H_
++ 
+++// It seems CORD doesn't work well with CUDA <= 10.2
+++#if !defined(__CUDACC__) || ((defined(__CUDACC__) && CUDA_VERSOIN > 10020))
+++
++ #include "absl/strings/cord.h"
++ #define TF_CORD_SUPPORT 1
++ 
+++#endif  // __CUDACC__
+++
++ #endif  // TENSORFLOW_CORE_PLATFORM_DEFAULT_CORD_H_
++diff --git a/tensorflow/core/profiler/utils/xplane_utils.cc b/tensorflow/core/profiler/utils/xplane_utils.cc
++index 5b7d22c..bcaff8e 100644
++--- a/tensorflow/core/profiler/utils/xplane_utils.cc
+++++ b/tensorflow/core/profiler/utils/xplane_utils.cc
++@@ -101,7 +101,8 @@ const XPlane* FindPlaneWithName(const XSpace& space, absl::string_view name) {
++ 
++ std::vector<const XPlane*> FindPlanesWithNames(
++     const XSpace& space, const std::vector<absl::string_view>& names) {
++-  absl::flat_hash_set<absl::string_view> names_set(names.begin(), names.end());
+++  absl::flat_hash_set<absl::string_view> names_set;
+++  names_set.insert(names.begin(), names.end());
++   std::vector<int> indices =
++       FindAll(space.planes(), [&names_set](const XPlane* plane) {
++         return names_set.contains(plane->name());
++diff --git a/tensorflow/python/lib/core/ndarray_tensor.cc b/tensorflow/python/lib/core/ndarray_tensor.cc
++index 6cf51ce..b7bd5a8 100644
++--- a/tensorflow/python/lib/core/ndarray_tensor.cc
+++++ b/tensorflow/python/lib/core/ndarray_tensor.cc
++@@ -16,7 +16,7 @@ limitations under the License.
++ #include "tensorflow/python/lib/core/ndarray_tensor.h"
++ 
++ #include <cstring>
++-#include <optional>
+++//#include <optional>
++ 
++ #include "tensorflow/c/eager/tfe_context_internal.h"
++ #include "tensorflow/c/tf_tensor_internal.h"
 +diff --git a/tensorflow/stream_executor/cuda/BUILD b/tensorflow/stream_executor/cuda/BUILD
-+index 7086217..9cdd1ee 100644
++index a43963b..3b2e10b 100644
 +--- a/tensorflow/stream_executor/cuda/BUILD
 ++++ b/tensorflow/stream_executor/cuda/BUILD
-+@@ -271,7 +271,7 @@ alias(
++@@ -268,7 +268,7 @@ alias(
 +     name = "cublas_lt_lib",
 +     actual = select({
 +         "//tensorflow:oss": ":cublas_lt_stub",
@@ -80,19 +129,10 @@ index 0000000..1b335c1
 +     visibility = ["//visibility:public"],
 + )
 +diff --git a/tensorflow/tensorflow.bzl b/tensorflow/tensorflow.bzl
-+index a4be1fe..623c42d 100644
++index a9da708..c1120f0 100644
 +--- a/tensorflow/tensorflow.bzl
 ++++ b/tensorflow/tensorflow.bzl
-+@@ -335,7 +335,7 @@ def tf_copts(
-+         if_enable_mkl(["-DENABLE_MKL"]) +
-+         if_ngraph(["-DINTEL_NGRAPH=1"]) +
-+         if_android_arm(["-mfpu=neon"]) +
-+-        if_linux_x86_64(["-msse3"]) +
-++        if_linux_x86_64(["-msse3", "-DNO_CONSTEXPR_FOR_YOU=1"]) +
-+         if_ios_x86_64(["-msse4.1"]) +
-+         select({
-+             clean_dep("//tensorflow:framework_shared_object"): [],
-+@@ -868,6 +868,7 @@ def tf_gen_op_wrappers_cc(
++@@ -911,6 +911,7 @@ def tf_gen_op_wrappers_cc(
 +             clean_dep("//tensorflow/core:portable_tensorflow_lib"),
 +         ]),
 +         copts = tf_copts(),
@@ -100,7 +140,7 @@ index 0000000..1b335c1
 +         alwayslink = 1,
 +         visibility = visibility,
 +         compatible_with = compatible_with,
-+@@ -886,6 +887,7 @@ def tf_gen_op_wrappers_cc(
++@@ -929,6 +930,7 @@ def tf_gen_op_wrappers_cc(
 +             clean_dep("//tensorflow/core:portable_tensorflow_lib"),
 +         ]),
 +         copts = tf_copts(),
@@ -108,110 +148,68 @@ index 0000000..1b335c1
 +         alwayslink = 1,
 +         visibility = [clean_dep("//tensorflow:internal")],
 +         compatible_with = compatible_with,
-+diff --git a/third_party/com_google_absl_fix_mac_and_nvcc_build.patch b/third_party/com_google_absl_fix_mac_and_nvcc_build.patch
-+index 6301119..9a7bd8b 100644
-+--- a/third_party/com_google_absl_fix_mac_and_nvcc_build.patch
-++++ b/third_party/com_google_absl_fix_mac_and_nvcc_build.patch
-+@@ -1,7 +1,6 @@
-+-diff --git a/absl/container/internal/compressed_tuple.h b/absl/container/internal/compressed_tuple.h
-+-index 4bfe92f..01db713 100644
-+---- a/absl/container/internal/compressed_tuple.h
-+-+++ b/absl/container/internal/compressed_tuple.h
-++diff -Naur absl_cpp_org/absl/container/internal/compressed_tuple.h absl_cpp_mod/absl/container/internal/compressed_tuple.h
-++--- absl_cpp_org/absl/container/internal/compressed_tuple.h	2020-03-04 20:57:37.000000000 +0000
-+++++ absl_cpp_mod/absl/container/internal/compressed_tuple.h	2020-11-11 06:33:08.541531240 +0000
-+ @@ -32,7 +32,6 @@
-+  #ifndef ABSL_CONTAINER_INTERNAL_COMPRESSED_TUPLE_H_
-+  #define ABSL_CONTAINER_INTERNAL_COMPRESSED_TUPLE_H_
-+@@ -10,7 +9,7 @@ index 4bfe92f..01db713 100644
-+  #include <tuple>
-+  #include <type_traits>
-+  #include <utility>
-+-@@ -77,110 +76,61 @@ constexpr bool IsFinal() {
-++@@ -77,110 +76,61 @@
-+  #endif
-+  }
-+  
-+@@ -139,7 +138,7 @@ index 4bfe92f..01db713 100644
-+  //
-+  // To access the members, use member .get<N>() function.
-+  //
-+-@@ -196,58 +146,36 @@ using TupleMoveConstructible = typename std::conditional<
-++@@ -196,58 +146,36 @@
-+  template <typename... Ts>
-+  class ABSL_INTERNAL_COMPRESSED_TUPLE_DECLSPEC CompressedTuple
-+      : private internal_compressed_tuple::CompressedTupleImpl<
-+@@ -207,11 +206,10 @@ index 4bfe92f..01db713 100644
-+    }
-+  };
-+  
-+-diff --git a/absl/strings/string_view.h b/absl/strings/string_view.h
-+-index 1861ea6..c7a916b 100644
-+---- a/absl/strings/string_view.h
-+-+++ b/absl/strings/string_view.h
-+-@@ -283,7 +283,14 @@ class string_view {
-++diff -Naur absl_cpp_org/absl/strings/string_view.h absl_cpp_mod/absl/strings/string_view.h
-++--- absl_cpp_org/absl/strings/string_view.h	2020-03-04 20:57:37.000000000 +0000
-+++++ absl_cpp_mod/absl/strings/string_view.h	2020-11-11 06:33:08.542531246 +0000
-++@@ -283,7 +283,14 @@
-+    // Returns the ith element of the `string_view` using the array operator.
-+    // Note that this operator does not perform any bounds checking.
-+    constexpr const_reference operator[](size_type i) const {
-+@@ -226,7 +224,7 @@ index 1861ea6..c7a916b 100644
-+    }
-+  
-+    // string_view::at()
-+-@@ -292,25 +299,46 @@ class string_view {
-++@@ -292,25 +299,46 @@
-+    // and an exception of type `std::out_of_range` will be thrown on invalid
-+    // access.
-+    constexpr const_reference at(size_type i) const {
-+@@ -273,7 +271,7 @@ index 1861ea6..c7a916b 100644
-+    }
-+  
-+    // string_view::data()
-+-@@ -519,7 +547,14 @@ class string_view {
-++@@ -519,7 +547,14 @@
-+        (std::numeric_limits<difference_type>::max)();
-+  
-+    static constexpr size_type CheckLengthInternal(size_type len) {
-+@@ -288,11 +286,10 @@ index 1861ea6..c7a916b 100644
-+    }
-+  
-+    static constexpr size_type StrlenInternal(const char* str) {
-+-diff --git a/absl/time/internal/cctz/BUILD.bazel b/absl/time/internal/cctz/BUILD.bazel
-+-index 7a53c81..159b0f0 100644
-+---- a/absl/time/internal/cctz/BUILD.bazel
-+-+++ b/absl/time/internal/cctz/BUILD.bazel
-+-@@ -74,15 +74,6 @@ cc_library(
-++diff -Naur absl_cpp_org/absl/time/internal/cctz/BUILD.bazel absl_cpp_mod/absl/time/internal/cctz/BUILD.bazel
-++--- absl_cpp_org/absl/time/internal/cctz/BUILD.bazel	2020-03-04 20:57:37.000000000 +0000
-+++++ absl_cpp_mod/absl/time/internal/cctz/BUILD.bazel	2020-11-11 06:33:08.542531246 +0000
-++@@ -74,15 +74,6 @@
-+          "include/cctz/time_zone.h",
-+          "include/cctz/zone_info_source.h",
-+      ],
-+@@ -308,3 +305,15 @@ index 7a53c81..159b0f0 100644
-+      visibility = ["//visibility:public"],
-+      deps = [
-+          ":civil_time",
-++diff -Naur absl_cpp_org/absl/time/internal/cctz/include/cctz/civil_time_detail.h absl_cpp_mod/absl/time/internal/cctz/include/cctz/civil_time_detail.h
-++--- absl_cpp_org/absl/time/internal/cctz/include/cctz/civil_time_detail.h	2020-03-04 20:57:37.000000000 +0000
-+++++ absl_cpp_mod/absl/time/internal/cctz/include/cctz/civil_time_detail.h	2020-11-11 06:34:42.238047397 +0000
-++@@ -23,7 +23,7 @@
-++ #include "absl/base/config.h"
-++ 
-++ // Disable constexpr support unless we are in C++14 mode.
-++-#if __cpp_constexpr >= 201304 || (defined(_MSC_VER) && _MSC_VER >= 1910)
-+++#if (!defined(NO_CONSTEXPR_FOR_YOU) && __cpp_constexpr >= 201304) || (defined(_MSC_VER) && _MSC_VER >= 1910)
-++ #define CONSTEXPR_D constexpr  // data
-++ #define CONSTEXPR_F constexpr  // function
-++ #define CONSTEXPR_M constexpr  // member
++diff --git a/third_party/cub.BUILD b/third_party/cub.BUILD
++index 581d8dd..c446f05 100644
++--- a/third_party/cub.BUILD
+++++ b/third_party/cub.BUILD
++@@ -11,5 +11,5 @@ exports_files(["LICENSE.TXT"])
++ cc_library(
++     name = "cub",
++     hdrs = glob(["cub/**"]),
++-    deps = ["@local_cuda//:cuda_headers"],
+++    deps = ["@local_config_cuda//cuda:cuda_headers"],
++ )
++diff --git a/third_party/eigen3/eigen.patch b/third_party/eigen3/eigen.patch
++new file mode 100644
++index 0000000..f9740cb
++--- /dev/null
+++++ b/third_party/eigen3/eigen.patch
++@@ -0,0 +1,28 @@
+++diff -Naur a/unsupported/Eigen/CXX11/src/Tensor/TensorReduction.h b/unsupported/Eigen/CXX11/src/Tensor/TensorReduction.h
+++--- a/unsupported/Eigen/CXX11/src/Tensor/TensorReduction.h
++++++ b/unsupported/Eigen/CXX11/src/Tensor/TensorReduction.h
+++@@ -815,8 +815,9 @@
+++       const Index firstIndex = firstInput(index);
+++       for (Index i = 0; i < PacketSize; ++i) {
+++         Op reducer(m_reducer);
+++-        values[i] = internal::InnerMostDimReducer<Self, Op>::reduce(*this, firstIndex + i * num_values_to_reduce,
+++-                                                                    num_values_to_reduce, reducer);
++++        Self::CoeffReturnType a = internal::InnerMostDimReducer<Self, Op>::reduce(*this,
++++                                       firstIndex + i * num_values_to_reduce, num_values_to_reduce, reducer);
++++        values[i] = a;
+++       }
+++     } else if (PreservingInnerMostDims) {
+++       const Index firstIndex = firstInput(index);
+++diff -Naur a/unsupported/Eigen/CXX11/src/Tensor/TensorImagePatch.h b/unsupported/Eigen/CXX11/src/Tensor/TensorImagePatch.h
+++--- a/unsupported/Eigen/CXX11/src/Tensor/TensorImagePatch.h
++++++ b/unsupported/Eigen/CXX11/src/Tensor/TensorImagePatch.h
+++@@ -543,7 +543,8 @@
+++     EIGEN_ALIGN_MAX typename internal::remove_const<CoeffReturnType>::type values[PacketSize];
+++     EIGEN_UNROLL_LOOP
+++     for (int i = 0; i < PacketSize; ++i) {
+++-      values[i] = coeff(index+i);
++++      Self::CoeffReturnType a = coeff(index+i);
++++      values[i] = a;
+++     }
+++     PacketReturnType rslt = internal::pload<PacketReturnType>(values);
+++     return rslt;
++diff --git a/third_party/eigen3/workspace.bzl b/third_party/eigen3/workspace.bzl
++index 233231f..7bf6b17 100644
++--- a/third_party/eigen3/workspace.bzl
+++++ b/third_party/eigen3/workspace.bzl
++@@ -13,6 +13,7 @@ def repo():
++         name = "eigen_archive",
++         build_file = "//third_party/eigen3:eigen_archive.BUILD",
++         sha256 = EIGEN_SHA256,
+++        patch_file = "//third_party/eigen3:eigen.patch",
++         strip_prefix = "eigen-{commit}".format(commit = EIGEN_COMMIT),
++         urls = [
++             "https://storage.googleapis.com/mirror.tensorflow.org/gitlab.com/libeigen/eigen/-/archive/{commit}/eigen-{commit}.tar.gz".format(commit = EIGEN_COMMIT),
 +diff --git a/third_party/gpus/cuda/BUILD.tpl b/third_party/gpus/cuda/BUILD.tpl
-+index 70eacf8..5cf0e71 100644
++index 8f783e5..a32ee37 100644
 +--- a/third_party/gpus/cuda/BUILD.tpl
 ++++ b/third_party/gpus/cuda/BUILD.tpl
-+@@ -172,6 +172,13 @@ cc_library(
++@@ -179,6 +179,13 @@ cc_library(
 + )
 + 
 + cc_library(
@@ -225,7 +223,7 @@ index 0000000..1b335c1
 +     name = "cuda",
 +     deps = [
 +         ":cublas",
-+@@ -181,6 +188,7 @@ cc_library(
++@@ -188,6 +195,7 @@ cc_library(
 +         ":cudnn",
 +         ":cufft",
 +         ":curand",
@@ -234,7 +232,7 @@ index 0000000..1b335c1
 + )
 + 
 +diff --git a/third_party/gpus/cuda_configure.bzl b/third_party/gpus/cuda_configure.bzl
-+index 3ba3447..f29b2d1 100644
++index 867cab4..22e61f3 100644
 +--- a/third_party/gpus/cuda_configure.bzl
 ++++ b/third_party/gpus/cuda_configure.bzl
 +@@ -476,6 +476,8 @@ def _lib_path(lib, cpu_value, basedir, version, static):
@@ -276,7 +274,7 @@ index 0000000..1b335c1
 + 
 +     # Set up cuda_config.h, which is used by
 +     # tensorflow/stream_executor/dso_loader.cc.
-+@@ -1165,6 +1176,7 @@ def _create_local_cuda_repository(repository_ctx):
++@@ -1159,6 +1170,7 @@ def _create_local_cuda_repository(repository_ctx):
 +             "%{curand_lib}": _basename(repository_ctx, cuda_libs["curand"]),
 +             "%{cupti_lib}": _basename(repository_ctx, cuda_libs["cupti"]),
 +             "%{cusparse_lib}": _basename(repository_ctx, cuda_libs["cusparse"]),
@@ -284,44 +282,31 @@ index 0000000..1b335c1
 +             "%{cub_actual}": cub_actual,
 +             "%{copy_rules}": "\n".join(copy_rules),
 +         },
-+diff --git a/third_party/gpus/find_cuda_config.py b/third_party/gpus/find_cuda_config.py
-+index 80f3430..6a85107 100644
-+--- a/third_party/gpus/find_cuda_config.py
-++++ b/third_party/gpus/find_cuda_config.py
-+@@ -587,6 +587,8 @@ def find_cuda_config():
-+     if tuple(int(v) for v in cuda_version.split(".")) < (10, 1):
-+       # Before CUDA 10.1, cuBLAS was in the same directory as the toolkit.
-+       cublas_paths = cuda_paths
-++
-++    cublas_paths = cuda_paths
-+     cublas_version = os.environ.get("TF_CUBLAS_VERSION", "")
-+     result.update(
-+         _find_cublas_config(cublas_paths, cublas_version, cuda_version))
 +diff --git a/third_party/tensorrt/BUILD.tpl b/third_party/tensorrt/BUILD.tpl
-+index dfa06ce..0b386f9 100644
++index 7fa5935..f54fe4f 100644
 +--- a/third_party/tensorrt/BUILD.tpl
 ++++ b/third_party/tensorrt/BUILD.tpl
-+@@ -25,6 +25,7 @@ cc_library(
-+     srcs = [":tensorrt_lib"],
-+     copts = cuda_default_copts(),
-+     data = [":tensorrt_lib"],
-++    linkopts = ['-L/usr/lib64'],
++@@ -37,6 +37,7 @@ cc_library(
++         "//conditions:default": [":tensorrt_lib"],
++     }),
 +     linkstatic = 1,
+++    linkopts = ['-L/usr/lib64'],
 +     deps = [
 +         ":tensorrt_headers",
++         # TODO(b/174608722): fix this line.
 +diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
-+index 9c980a9..deafd2a 100644
++index 8b28f57..bc54004 100644
 +--- a/third_party/tensorrt/tensorrt_configure.bzl
 ++++ b/third_party/tensorrt/tensorrt_configure.bzl
-+@@ -101,6 +101,8 @@ def _create_local_tensorrt_repository(repository_ctx):
++@@ -115,6 +115,8 @@ def _create_local_tensorrt_repository(repository_ctx):
 + 
 +     # Copy the library and header files.
 +     libraries = [lib_name(lib, cpu_value, trt_version) for lib in _TF_TENSORRT_LIBS]
-++    libraries.append("libmemcpy-2.14.so")
 ++    libraries.append("libmyelin.so.1")
+++    libraries.append("libmemcpy-2.14.so")
++ 
 +     library_dir = config["tensorrt_library_dir"] + "/"
 +     headers = _get_tensorrt_headers(trt_version)
-+     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
 +1.8.3.1
 +
