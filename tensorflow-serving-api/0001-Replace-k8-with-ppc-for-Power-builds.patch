@@ -1,17 +1,17 @@
-From 393076559af8e79d643b78cc964635f445f66ef7 Mon Sep 17 00:00:00 2001
-From: "William D. Irons" <wdirons@us.ibm.com>
-Date: Wed, 8 Apr 2020 18:04:45 +0000
+From 968fa8e54bb8f1069a1fa9f9c097eedb3058c7bc Mon Sep 17 00:00:00 2001
+From: Nishidha Panpaliya <npanpa23@in.ibm.com>
+Date: Tue, 1 Jun 2021 05:30:39 -0500
 Subject: [PATCH] Replace k8 with ppc for Power builds
 
 ---
- .../tools/pip_package/build_pip_package.sh             | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ tensorflow_serving/tools/pip_package/build_pip_package.sh | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/tensorflow_serving/tools/pip_package/build_pip_package.sh b/tensorflow_serving/tools/pip_package/build_pip_package.sh
-index efd9b2b4..3e704aad 100755
+index 60f8136d..25410e09 100755
 --- a/tensorflow_serving/tools/pip_package/build_pip_package.sh
 +++ b/tensorflow_serving/tools/pip_package/build_pip_package.sh
-@@ -41,7 +41,7 @@ function main() {
+@@ -40,7 +40,7 @@ function main() {
    mkdir -p ${TMPDIR}/tensorflow_serving/util
  
    echo "Adding python files"
@@ -20,7 +20,7 @@ index efd9b2b4..3e704aad 100755
      "${TMPDIR}/tensorflow_serving/apis"
  
    cp ${BAZEL_PROJECT_DIR}/tensorflow_serving/apis/*_pb2.py \
-@@ -50,16 +50,16 @@ function main() {
+@@ -49,13 +49,13 @@ function main() {
    cp ${BAZEL_PROJECT_DIR}/tensorflow_serving/apis/*_grpc.py \
      "${TMPDIR}/tensorflow_serving/apis"
  
@@ -32,14 +32,11 @@ index efd9b2b4..3e704aad 100755
 +  cp bazel-out/ppc-opt/bin/tensorflow_serving/core/*_pb2.py \
      "${TMPDIR}/tensorflow_serving/core"
  
--  cp bazel-out/k8-opt/bin/tensorflow_serving/sources/storage_path/*_pb2.py \
-+  cp bazel-out/ppc-opt/bin/tensorflow_serving/sources/storage_path/*_pb2.py \
-     "${TMPDIR}/tensorflow_serving/sources/storage_path"
- 
 -  cp bazel-out/k8-opt/bin/tensorflow_serving/util/*_pb2.py \
 +  cp bazel-out/ppc-opt/bin/tensorflow_serving/util/*_pb2.py \
      "${TMPDIR}/tensorflow_serving/util"
  
    touch "${TMPDIR}/tensorflow_serving/apis/__init__.py"
 -- 
-2.17.1
+2.23.0
+
