@@ -19,7 +19,7 @@ index 79ca7f2..813aacb 100644
      name = "org_tensorflow",
      sha256 = "cb99f136dc5c89143669888a44bfdd134c086e1e2d9e36278c1eb0f03fe62d76",
      git_commit = "a4dfb8d1a71385bd6d122e4f27f86dcebb96712d",
-+    patch = "//third_party/tensorflow:Fix-plus-memcpy-wrapper-patch.patch",
++    patch = "//third_party/tensorflow:TF-Build-fix-x86-64.patch",
  )
  
  # Import all of TensorFlow Serving's external dependencies.
