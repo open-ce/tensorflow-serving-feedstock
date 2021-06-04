@@ -221,7 +221,7 @@ index 0000000..e70535b
 ++            "nvrtc",
 ++            cpu_value,
 ++            _get_cuda_extra_target_path(repository_ctx, cuda_config) + "/lib",
-++            cuda_config.cudart_version,
+++            cuda_config.cuda_version,
 ++            static = False,
 ++        ),
 ++

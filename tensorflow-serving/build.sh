@@ -58,6 +58,8 @@ bazel clean --expunge
 bazel shutdown
 
 bazel --bazelrc=$SRC_DIR/tensorflow_serving/tensorflow-serving.bazelrc build ${BUILD_OPTS} \
+    --local_cpu_resources=HOST_CPUS-10 \
+    --local_ram_resources=HOST_RAM*0.50 \
     --curses=no \
     --output_filter=DONT_MATCH_ANYTHING \
     tensorflow_serving/model_servers:tensorflow_model_server

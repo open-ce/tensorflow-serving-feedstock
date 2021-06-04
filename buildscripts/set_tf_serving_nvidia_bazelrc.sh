@@ -67,7 +67,7 @@ EOF
 
 PY_VER=$2
 
-if [[ $PY_VER < 3.8 ]]; then
+if [[ $ARCH == "x86_64" && $PY_VER < 3.9 ]]; then
 cat >> $BAZEL_RC_DIR/nvidia_components_configure.bazelrc << EOF
 build:tensorrt --action_env TF_NEED_TENSORRT=1
 build --config=tensorrt
