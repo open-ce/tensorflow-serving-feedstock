@@ -57,6 +57,12 @@ requirements:
    - tensorrt {{ tensorrt }}         # [build_type == 'cuda' and py<38]
    - libmemcpy_wrapper                 # [x86_64 and build_type == 'cuda' and cudatoolkit=='11.0']
 
+test:
+  requires:
+    # Use pins to control cos6/cos7 match
+    - libgcc-ng  {{ libgcc }}
+    - libstdcxx-ng  {{ libstdcxx }}
+
 about:
   home: https://www.tensorflow.org/tfx/guide/serving
   license: Apache 2.0
