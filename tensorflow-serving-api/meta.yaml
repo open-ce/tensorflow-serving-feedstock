@@ -14,6 +14,9 @@ build:
   number: 5
   string: py_pb{{ protobuf | replace(".*", "")}}_{{ PKG_BUILDNUM }}
   noarch: python
+  ignore_run_exports:
+    - libgcc-ng
+    - libstdcxx-ng
 
 requirements:
   build:
@@ -35,12 +38,9 @@ requirements:
    - python # noarch package; don't tie to specific python version
    - grpcio {{ grpcio }}
    - protobuf 3.9 # currently tf-serving only works with pb 3.9
-
-test:
-  requires:
-    # Use pins to control cos6/cos7 match
-    - libgcc-ng  {{ libgcc }}
-    - libstdcxx-ng  {{ libstdcxx }}
+   # Use pins to control cos6/cos7 match
+   - libgcc-ng  {{ libgcc }}
+   - libstdcxx-ng  {{ libstdcxx }}
 
 about:
   home: https://www.tensorflow.org/tfx/guide/serving
