@@ -42,7 +42,8 @@ requirements:
    - bazel {{ bazel }}
    - cudnn {{ cudnn }}                 # [build_type == 'cuda']
    - nccl {{ nccl }}                   # [build_type == 'cuda']
-     #   - tensorrt {{ tensorrt }}           # [x86_64 and build_type == 'cuda' and py<38]
+   # Uncomment TRT after it is updated to newer versions
+   #   - tensorrt {{ tensorrt }}           # [x86_64 and build_type == 'cuda' and py<38]
    - libmemcpy_wrapper                 # [x86_64 and build_type == 'cuda' and (cudatoolkit=='11.0' or cudatoolkit=='11.2')]
    - numpy {{ numpy }}
    - grpcio {{ grpcio }}
@@ -57,7 +58,8 @@ requirements:
    - cudatoolkit {{ cudatoolkit }}   # [build_type == 'cuda']
    - cudnn {{ cudnn }}               # [build_type == 'cuda']
    - nccl {{ nccl }}                 # [build_type == 'cuda']
-     #- tensorrt {{ tensorrt }}         # [x86_64 and build_type == 'cuda' and py<38]
+   # Uncomment TRT after it is updated to newer versions
+   #- tensorrt {{ tensorrt }}         # [x86_64 and build_type == 'cuda' and py<38]
    - libmemcpy_wrapper               # [x86_64 and build_type == 'cuda' and (cudatoolkit=='11.0' or cudatoolkit=='11.2')]
    # Use pins to control cos6/cos7 match
    - libgcc-ng  {{ libgcc }}
