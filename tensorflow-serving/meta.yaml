@@ -34,7 +34,6 @@ requirements:
    - automake
    - libtool
    - make
-   - libgcc                 # [x86_64 and build_type == 'cuda']
    - git >={{ git }}
    - patch
   host:
