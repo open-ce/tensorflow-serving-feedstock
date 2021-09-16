@@ -5,9 +5,9 @@ select_version:
   - "2.1.0 cuda"
   - "2.2.0 cpu"
 c_compiler_version:
-   - 7.3.0
+   - 8.2.0 #[ppc64le]
 cxx_compiler_version:
-   - 7.3.0
+   - 8.2.0 #[ppc64le]
 zip_keys:
   - build_type
   - select_version

@@ -1,56 +1,204 @@
-From 40e0eef82a19e8d15f40576e4d28e0bf918d62fa Mon Sep 17 00:00:00 2001
+From cc449154e2d8fad2282b727c861b07fae7958aaa Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Tue, 1 Jun 2021 12:16:36 -0400
-Subject: [PATCH] TF 2.5 build fix ppc64le
+Date: Wed, 15 Sep 2021 07:09:04 -0400
+Subject: [PATCH] TF 2.6 build fix ppc64le
 
 ---
- WORKSPACE                                       |   1 +
- third_party/tensorflow/BUILD                    |   0
- third_party/tensorflow/tensorflow_patches.patch | 227 ++++++++++++++++++++++++
- 3 files changed, 228 insertions(+)
+ WORKSPACE                                     |   1 +
+ third_party/tensorflow/BUILD                  |   0
+ .../tensorflow/tensorflow_patches.patch       | 373 ++++++++++++++++++
+ 3 files changed, 374 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 79ca7f2..c02b8d4 100644
+index baa63038..1c270a39 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -17,6 +17,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "cb99f136dc5c89143669888a44bfdd134c086e1e2d9e36278c1eb0f03fe62d76",
-     git_commit = "a4dfb8d1a71385bd6d122e4f27f86dcebb96712d",
+     sha256 = "70a865814b9d773024126a6ce6fea68fefe907b7ae6f9ac7e656613de93abf87",
+     git_commit = "919f693420e35d00c8d0a42100837ae3718f7927",
 +    patch = "//third_party/tensorflow:tensorflow_patches.patch",
  )
  
  # Import all of TensorFlow Serving's external dependencies.
 diff --git a/third_party/tensorflow/BUILD b/third_party/tensorflow/BUILD
 new file mode 100644
-index 0000000..e69de29
+index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 0000000..e70535b
+index 00000000..d31e25d5
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,227 @@
-+From 2a7d6ac9f5598c67717ddb2c6464db1ca94af58c Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,373 @@
++From a99b406695608f1350fefa5e2b7fdebd5f3faf7f Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Tue, 1 Jun 2021 12:15:29 -0400
-+Subject: [PATCH] tensoflow patches
++Date: Wed, 15 Sep 2021 07:06:24 -0400
++Subject: [PATCH] tensorflow patches
 +
 +---
-+ .../core/platform/default/build_config/BUILD       |  2 ++
-+ tensorflow/core/platform/default/cord.h            |  5 +++
-+ tensorflow/core/profiler/utils/xplane_utils.cc     |  3 +-
-+ tensorflow/python/lib/core/ndarray_tensor.cc       |  2 +-
-+ tensorflow/stream_executor/cuda/BUILD              |  2 +-
-+ third_party/cub.BUILD                              |  2 +-
-+ third_party/gpus/cuda/BUILD.tpl                    |  8 +++++
-+ third_party/gpus/cuda_configure.bzl                | 40 ++++++++++++++++++++++
-+ third_party/tensorrt/tensorrt_configure.bzl        |  1 +
-+ 9 files changed, 61 insertions(+), 4 deletions(-)
++ tensorflow/core/kernels/BUILD                 |  6 ++-
++ .../eigen_backward_cuboid_convolutions.h      |  1 +
++ .../eigen_backward_spatial_convolutions.h     |  1 +
++ .../core/kernels/eigen_cuboid_convolution.h   | 18 +++++----
++ .../kernels/eigen_spatial_convolutions-inl.h  | 18 +++++----
++ .../core/platform/default/build_config/BUILD  |  2 +
++ .../core/profiler/utils/xplane_utils.cc       |  3 +-
++ tensorflow/python/lib/core/ndarray_tensor.cc  |  2 +-
++ tensorflow/stream_executor/cuda/BUILD         |  2 +-
++ third_party/cub.BUILD                         |  2 +-
++ third_party/eigen3/workspace.bzl              |  4 +-
++ third_party/gpus/cuda/BUILD.tpl               |  8 ++++
++ third_party/gpus/cuda_configure.bzl           | 40 +++++++++++++++++++
++ third_party/tensorrt/tensorrt_configure.bzl   |  1 +
++ 14 files changed, 86 insertions(+), 22 deletions(-)
 +
++diff --git a/tensorflow/core/kernels/BUILD b/tensorflow/core/kernels/BUILD
++index 6958d708c41..834d4685c8b 100644
++--- a/tensorflow/core/kernels/BUILD
+++++ b/tensorflow/core/kernels/BUILD
++@@ -942,6 +942,9 @@ cc_library(
++         "eigen_convolution_helpers.h",
++     ],
++     compatible_with = get_compatible_with_portable(),
+++    defines = [
+++        "EIGEN_ALTIVEC_USE_CUSTOM_PACK=0",
+++    ],
++ )
++ 
++ # OpKernel libraries ----------------------------------------------------------
++@@ -3974,8 +3977,7 @@ cc_library(
++     ],
++ )
++ 
++-NN_DEPS = [
++-    ":conv_2d",
+++NN_DEPS = if_cuda_or_rocm([":conv_2d"]) + [
++     ":eigen_contraction_kernel",
++     ":ops_util",
++     "//tensorflow/core:framework",
++diff --git a/tensorflow/core/kernels/eigen_backward_cuboid_convolutions.h b/tensorflow/core/kernels/eigen_backward_cuboid_convolutions.h
++index 9a2d431b0d8..958f1149dc9 100644
++--- a/tensorflow/core/kernels/eigen_backward_cuboid_convolutions.h
+++++ b/tensorflow/core/kernels/eigen_backward_cuboid_convolutions.h
++@@ -17,6 +17,7 @@ limitations under the License.
++ #define TENSORFLOW_CORE_KERNELS_EIGEN_BACKWARD_CUBOID_CONVOLUTIONS_H_
++ 
++ #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
+++#include "tensorflow/core/kernels/eigen_cuboid_convolution.h"
++ 
++ namespace Eigen {
++ 
++diff --git a/tensorflow/core/kernels/eigen_backward_spatial_convolutions.h b/tensorflow/core/kernels/eigen_backward_spatial_convolutions.h
++index 8c4c86acd66..881efed4bc2 100644
++--- a/tensorflow/core/kernels/eigen_backward_spatial_convolutions.h
+++++ b/tensorflow/core/kernels/eigen_backward_spatial_convolutions.h
++@@ -17,6 +17,7 @@ limitations under the License.
++ #define TENSORFLOW_CORE_KERNELS_EIGEN_BACKWARD_SPATIAL_CONVOLUTIONS_H_
++ 
++ #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
+++#include "tensorflow/core/kernels/eigen_spatial_convolutions.h"
++ 
++ namespace Eigen {
++ 
++diff --git a/tensorflow/core/kernels/eigen_cuboid_convolution.h b/tensorflow/core/kernels/eigen_cuboid_convolution.h
++index d12db1b92a0..bf0cdd59e4f 100644
++--- a/tensorflow/core/kernels/eigen_cuboid_convolution.h
+++++ b/tensorflow/core/kernels/eigen_cuboid_convolution.h
++@@ -24,17 +24,11 @@ limitations under the License.
++ 
++ #include "tensorflow/core/kernels/eigen_convolution_helpers.h"
++ 
++-#if defined(EIGEN_VECTORIZE_ALTIVEC) || defined(EIGEN_VECTORIZE_VSX)
++-#define TF_USE_CUSTOM_EIGEN_PACK 0
++-#else
++-#define TF_USE_CUSTOM_EIGEN_PACK 1
++-#endif
++-
++ namespace Eigen {
++ 
++ namespace internal {
++ 
++-#if TF_USE_CUSTOM_EIGEN_PACK
+++#if !EIGEN_ALTIVEC_USE_CUSTOM_PACK
++ // WARNING: Most of the code here implicitly assumes that the matrix is in
++ // ColMajor layout. This is guaranteed by the tensor contraction (see
++ // TensorContraction.h).
++@@ -1364,6 +1358,15 @@ struct gemm_pack_rhs<
++     }
++ 
++     // Copy the remaining columns one at a time (nr==1).
+++#if defined(EIGEN_VECTORIZE_ALTIVEC) || defined(EIGEN_VECTORIZE_VSX)
+++    // remaining columns are handled different for PPC
+++    for (Index k = 0; k < depth; k++) {
+++      for (Index j2 = packet_cols4; j2 < cols; ++j2) {
+++        *block = rhs(k, j2);
+++        block += 1;
+++      }
+++    }
+++#else
++     for (Index j2 = packet_cols4; j2 < cols; ++j2) {
++       const SubMapper dm0 = rhs.getLinearMapper(0, j2);
++       for (Index k = 0; k < depth; k++) {
++@@ -1371,6 +1374,7 @@ struct gemm_pack_rhs<
++         block += 1;
++       }
++     }
+++#endif
++   }
++ };
++ 
++diff --git a/tensorflow/core/kernels/eigen_spatial_convolutions-inl.h b/tensorflow/core/kernels/eigen_spatial_convolutions-inl.h
++index b195a714387..61cfc820a6c 100644
++--- a/tensorflow/core/kernels/eigen_spatial_convolutions-inl.h
+++++ b/tensorflow/core/kernels/eigen_spatial_convolutions-inl.h
++@@ -18,18 +18,12 @@ limitations under the License.
++ 
++ #include "tensorflow/core/kernels/eigen_convolution_helpers.h"
++ 
++-#if defined(EIGEN_VECTORIZE_ALTIVEC) || defined(EIGEN_VECTORIZE_VSX)
++-#define TF_USE_CUSTOM_EIGEN_PACK 0
++-#else
++-#define TF_USE_CUSTOM_EIGEN_PACK 1
++-#endif
++-
++ // Note this header is used in both TF and TFLite.
++ namespace Eigen {
++ 
++ namespace internal {
++ 
++-#if TF_USE_CUSTOM_EIGEN_PACK
+++#if !EIGEN_ALTIVEC_USE_CUSTOM_PACK
++ // WARNING: Most of the code here implicitly assumes that the matrix is in
++ // ColMajor layout. This is guaranteed by the tensor contraction (see
++ // TensorContraction.h).
++@@ -1239,6 +1233,15 @@ struct gemm_pack_rhs<
++     }
++ 
++     // copy the remaining columns one at a time (nr==1)
+++#if defined(EIGEN_VECTORIZE_ALTIVEC) || defined(EIGEN_VECTORIZE_VSX)
+++    // remaining columns are handled different for PPC
+++    for (Index k = 0; k < depth; k++) {
+++      for (Index j2 = packet_cols4; j2 < cols; ++j2) {
+++        *block = rhs(k, j2);
+++        block += 1;
+++      }
+++    }
+++#else
++     for (Index j2 = packet_cols4; j2 < cols; ++j2) {
++       const SubMapper dm0 = rhs.getLinearMapper(0, j2);
++       for (Index k = 0; k < depth; k++) {
++@@ -1246,6 +1249,7 @@ struct gemm_pack_rhs<
++         block += 1;
++       }
++     }
+++#endif
++   }
++ };
++ 
 +diff --git a/tensorflow/core/platform/default/build_config/BUILD b/tensorflow/core/platform/default/build_config/BUILD
-+index 9746e6e..359f756 100644
++index 9746e6e5222..359f756043e 100644
 +--- a/tensorflow/core/platform/default/build_config/BUILD
 ++++ b/tensorflow/core/platform/default/build_config/BUILD
 +@@ -212,8 +212,10 @@ cc_library(
@@ -64,25 +212,8 @@ index 0000000..e70535b
 +         ],
 +     }),
 +     deps = [
-+diff --git a/tensorflow/core/platform/default/cord.h b/tensorflow/core/platform/default/cord.h
-+index cdfab1e..febd6fa 100644
-+--- a/tensorflow/core/platform/default/cord.h
-++++ b/tensorflow/core/platform/default/cord.h
-+@@ -16,7 +16,12 @@ limitations under the License.
-+ #ifndef TENSORFLOW_CORE_PLATFORM_DEFAULT_CORD_H_
-+ #define TENSORFLOW_CORE_PLATFORM_DEFAULT_CORD_H_
-+ 
-++// It seems CORD doesn't work well with CUDA <= 10.2
-++#if !defined(__CUDACC__) || ((defined(__CUDACC__) && CUDA_VERSOIN > 10020))
-++
-+ #include "absl/strings/cord.h"
-+ #define TF_CORD_SUPPORT 1
-+ 
-++#endif  // __CUDACC__
-++
-+ #endif  // TENSORFLOW_CORE_PLATFORM_DEFAULT_CORD_H_
 +diff --git a/tensorflow/core/profiler/utils/xplane_utils.cc b/tensorflow/core/profiler/utils/xplane_utils.cc
-+index 5b7d22c..bcaff8e 100644
++index 5b7d22ce22f..bcaff8e634a 100644
 +--- a/tensorflow/core/profiler/utils/xplane_utils.cc
 ++++ b/tensorflow/core/profiler/utils/xplane_utils.cc
 +@@ -101,7 +101,8 @@ const XPlane* FindPlaneWithName(const XSpace& space, absl::string_view name) {
@@ -96,7 +227,7 @@ index 0000000..e70535b
 +       FindAll(space.planes(), [&names_set](const XPlane* plane) {
 +         return names_set.contains(plane->name());
 +diff --git a/tensorflow/python/lib/core/ndarray_tensor.cc b/tensorflow/python/lib/core/ndarray_tensor.cc
-+index 6cf51ce..b7bd5a8 100644
++index 6cf51ceebbd..b7bd5a87c89 100644
 +--- a/tensorflow/python/lib/core/ndarray_tensor.cc
 ++++ b/tensorflow/python/lib/core/ndarray_tensor.cc
 +@@ -16,7 +16,7 @@ limitations under the License.
@@ -109,10 +240,10 @@ index 0000000..e70535b
 + #include "tensorflow/c/eager/tfe_context_internal.h"
 + #include "tensorflow/c/tf_tensor_internal.h"
 +diff --git a/tensorflow/stream_executor/cuda/BUILD b/tensorflow/stream_executor/cuda/BUILD
-+index a43963b..3b2e10b 100644
++index dea06e0efd4..9db66329121 100644
 +--- a/tensorflow/stream_executor/cuda/BUILD
 ++++ b/tensorflow/stream_executor/cuda/BUILD
-+@@ -268,7 +268,7 @@ alias(
++@@ -270,7 +270,7 @@ alias(
 +     name = "cublas_lt_lib",
 +     actual = select({
 +         "//tensorflow:oss": ":cublas_lt_stub",
@@ -122,7 +253,7 @@ index 0000000..e70535b
 +     visibility = ["//visibility:public"],
 + )
 +diff --git a/third_party/cub.BUILD b/third_party/cub.BUILD
-+index 581d8dd..c446f05 100644
++index 581d8dd9421..c446f0517d3 100644
 +--- a/third_party/cub.BUILD
 ++++ b/third_party/cub.BUILD
 +@@ -11,5 +11,5 @@ exports_files(["LICENSE.TXT"])
@@ -132,24 +263,39 @@ index 0000000..e70535b
 +-    deps = ["@local_cuda//:cuda_headers"],
 ++    deps = ["@local_config_cuda//cuda:cuda_headers"],
 + )
++diff --git a/third_party/eigen3/workspace.bzl b/third_party/eigen3/workspace.bzl
++index 736b61adc30..96371dda195 100644
++--- a/third_party/eigen3/workspace.bzl
+++++ b/third_party/eigen3/workspace.bzl
++@@ -6,8 +6,8 @@ def repo():
++     """Imports Eigen."""
++ 
++     # Attention: tools parse and update these lines.
++-    EIGEN_COMMIT = "12e8d57108c50d8a63605c6eb0144c838c128337"
++-    EIGEN_SHA256 = "f689246e342c3955af48d26ce74ac34d21b579a00675c341721a735937919b02"
+++    EIGEN_COMMIT = "7b35638ddb99a0298c5d3450de506a8e8e0203d3"
+++    EIGEN_SHA256 = "2f25d7d0279c57ce7c533bc71ba78af9c24a0a0aac4102bfeb28c2b5737499d1"
++ 
++     tf_http_archive(
++         name = "eigen_archive",
 +diff --git a/third_party/gpus/cuda/BUILD.tpl b/third_party/gpus/cuda/BUILD.tpl
-+index 8f783e5..3590ce3 100644
++index 8f783e58d66..3590ce32dae 100644
 +--- a/third_party/gpus/cuda/BUILD.tpl
 ++++ b/third_party/gpus/cuda/BUILD.tpl
-+@@ -76,6 +76,13 @@ cc_library(
++@@ -75,6 +75,13 @@ cc_library(
++     srcs = ["cuda/lib/%{cuda_driver_lib}"],
 + )
 + 
-+ cc_library(
+++cc_library(
 ++    name = "nvrtc",
 ++    srcs = ["cuda/lib/%{nvrtc_lib}"],
 ++    data = ["cuda/lib/%{nvrtc_lib}"],
 ++    linkstatic = 1,
 ++)
 ++
-++cc_library(
++ cc_library(
 +     name = "cudart",
 +     srcs = ["cuda/lib/%{cudart_lib}"],
-+     data = ["cuda/lib/%{cudart_lib}"],
 +@@ -188,6 +195,7 @@ cc_library(
 +         ":cudnn",
 +         ":cufft",
@@ -159,7 +305,7 @@ index 0000000..e70535b
 + )
 + 
 +diff --git a/third_party/gpus/cuda_configure.bzl b/third_party/gpus/cuda_configure.bzl
-+index 867cab4..3d1dd11 100644
++index ed8ba3d5205..1c7bfd6c144 100644
 +--- a/third_party/gpus/cuda_configure.bzl
 ++++ b/third_party/gpus/cuda_configure.bzl
 +@@ -51,6 +51,7 @@ load(
@@ -236,7 +382,7 @@ index 0000000..e70535b
 +             "%{cub_actual}": ":cuda_headers",
 +             "%{copy_rules}": """
 + filegroup(name="cuda-include")
-+@@ -1159,6 +1198,7 @@ def _create_local_cuda_repository(repository_ctx):
++@@ -1160,6 +1199,7 @@ def _create_local_cuda_repository(repository_ctx):
 +             "%{curand_lib}": _basename(repository_ctx, cuda_libs["curand"]),
 +             "%{cupti_lib}": _basename(repository_ctx, cuda_libs["cupti"]),
 +             "%{cusparse_lib}": _basename(repository_ctx, cuda_libs["cusparse"]),
@@ -245,10 +391,10 @@ index 0000000..e70535b
 +             "%{copy_rules}": "\n".join(copy_rules),
 +         },
 +diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
-+index 8b28f57..e4aed19 100644
++index db3c65a8766..089d48ef65d 100644
 +--- a/third_party/tensorrt/tensorrt_configure.bzl
 ++++ b/third_party/tensorrt/tensorrt_configure.bzl
-+@@ -116,6 +116,7 @@ def _create_local_tensorrt_repository(repository_ctx):
++@@ -129,6 +129,7 @@ def _create_local_tensorrt_repository(repository_ctx):
 +     # Copy the library and header files.
 +     libraries = [lib_name(lib, cpu_value, trt_version) for lib in _TF_TENSORRT_LIBS]
 + 
@@ -257,8 +403,8 @@ index 0000000..e70535b
 +     headers = _get_tensorrt_headers(trt_version)
 +     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
-+1.8.3.1
++2.23.0
 +
 -- 
-1.8.3.1
+2.23.0
 
