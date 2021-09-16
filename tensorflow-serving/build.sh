@@ -28,13 +28,6 @@ if [[ $build_type == "cuda" ]]
 then
   # Pick up the CUDA and CUDNN environment
   $SCRIPT_DIR/set_tf_serving_nvidia_bazelrc.sh $SRC_DIR/tensorflow_serving $PY_VER
-  if [[ "${ARCH}" == 'x86_64' ]] && [[ ($PY_VER < 3.8 && $cudatoolkit == "10.2") || ($cudatoolkit == "11.0") || ($cudatoolkit == "11.2") ]]; then
-    # Create symlink of libmemcpy-2.14.so from where it can be picked up by TF build
-    # Avoid this for Python3.8 since this is related to TensorRT and TensorRT is
-    # not available for Py38 yet. This is always needed for cuda 11.0 because cudnn8 needs it as well.
-    mkdir -p ${PREFIX}/lib64
-    ln -s ${PREFIX}/lib/libmemcpy-2.14.so ${PREFIX}/lib64/libmemcpy-2.14.so
-  fi
 fi
 
 # Build the bazelrc
