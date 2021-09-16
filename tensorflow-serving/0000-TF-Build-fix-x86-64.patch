@@ -1,13 +1,13 @@
-From fff80f48de716fd6799162792e64981126611180 Mon Sep 17 00:00:00 2001
+From 55f5cbd50265208c2e08238d03ac7ead976b0af7 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Thu, 16 Sep 2021 09:38:44 -0400
+Date: Thu, 16 Sep 2021 14:33:17 -0400
 Subject: [PATCH] TF Build fix x86-64
 
 ---
  WORKSPACE                                     |   1 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/TF-Build-fix-x86-64.patch      | 206 ++++++++++++++++++
- 3 files changed, 207 insertions(+)
+ .../tensorflow/TF-Build-fix-x86-64.patch      | 228 ++++++++++++++++++
+ 3 files changed, 229 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/TF-Build-fix-x86-64.patch
 
@@ -28,13 +28,13 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/TF-Build-fix-x86-64.patch b/third_party/tensorflow/TF-Build-fix-x86-64.patch
 new file mode 100644
-index 00000000..45c02ea8
+index 00000000..2128ae90
 --- /dev/null
 +++ b/third_party/tensorflow/TF-Build-fix-x86-64.patch
-@@ -0,0 +1,206 @@
-+From 68d3ba63546cb96537f8ed669bed6727f2ea0e82 Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,228 @@
++From b0b3d9a8fce8e5714ce6e1901dabde372fe7946b Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Thu, 16 Sep 2021 09:37:21 -0400
++Date: Thu, 16 Sep 2021 14:32:25 -0400
 +Subject: [PATCH] TF Build fix x86-64
 +
 +---
@@ -45,10 +45,11 @@ index 00000000..45c02ea8
 + third_party/cub.BUILD                         |  2 +-
 + third_party/eigen3/eigen.patch                | 28 +++++++++++++++++++
 + third_party/eigen3/workspace.bzl              |  1 +
++ third_party/gpus/cuda_configure.bzl           | 10 ++++---
 + third_party/systemlibs/sqlite.BUILD           | 27 +++++++++++++++++-
 + third_party/tensorrt/BUILD.tpl                |  1 +
 + third_party/tensorrt/tensorrt_configure.bzl   |  1 +
-+ 10 files changed, 64 insertions(+), 5 deletions(-)
++ 11 files changed, 70 insertions(+), 9 deletions(-)
 + create mode 100644 third_party/eigen3/eigen.patch
 +
 +diff --git a/tensorflow/core/profiler/utils/xplane_utils.cc b/tensorflow/core/profiler/utils/xplane_utils.cc
@@ -168,6 +169,27 @@ index 00000000..45c02ea8
 +         strip_prefix = "eigen-{commit}".format(commit = EIGEN_COMMIT),
 +         urls = [
 +             "https://storage.googleapis.com/mirror.tensorflow.org/gitlab.com/libeigen/eigen/-/archive/{commit}/eigen-{commit}.tar.gz".format(commit = EIGEN_COMMIT),
++diff --git a/third_party/gpus/cuda_configure.bzl b/third_party/gpus/cuda_configure.bzl
++index ed8ba3d5205..5f40e667ea5 100644
++--- a/third_party/gpus/cuda_configure.bzl
+++++ b/third_party/gpus/cuda_configure.bzl
++@@ -1206,10 +1206,12 @@ def _create_local_cuda_repository(repository_ctx):
++     # TODO: when bazel stops adding '-B/usr/bin' by default, remove this
++     #       flag from the CROSSTOOL completely (see
++     #       https://github.com/bazelbuild/bazel/issues/5634)
++-    if should_download_clang:
++-        cuda_defines["%{linker_bin_path}"] = ""
++-    else:
++-        cuda_defines["%{linker_bin_path}"] = host_compiler_prefix
+++    # if should_download_clang:
+++    #     cuda_defines["%{linker_bin_path}"] = ""
+++    # else:
+++    #     cuda_defines["%{linker_bin_path}"] = host_compiler_prefix
+++    # Never add -B/usr/bin
+++    cuda_defines["%{linker_bin_path}"] = ""
++ 
++     cuda_defines["%{extra_no_canonical_prefixes_flags}"] = ""
++     cuda_defines["%{unfiltered_compile_flags}"] = ""
 +diff --git a/third_party/systemlibs/sqlite.BUILD b/third_party/systemlibs/sqlite.BUILD
 +index 88a84a96137..31fc5ed5e88 100644
 +--- a/third_party/systemlibs/sqlite.BUILD

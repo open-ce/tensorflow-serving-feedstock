@@ -40,7 +40,7 @@ fi
 
 ln -s $GCC $PREFIX/gcc
 ln -s $GXX $PREFIX/g++
-
+ln -s $LD $BUILD_PREFIX/bin/ld
 
 if [ "${build_type}" = "mkl" ]; then
   BUILD_OPTS+=" --config=mkl"
