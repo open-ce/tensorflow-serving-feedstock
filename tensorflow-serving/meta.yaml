@@ -41,6 +41,7 @@ requirements:
    - numpy {{ numpy }}
    - grpcio {{ grpcio }}
    - python {{ python }}
+   - sqlite 3.33.0
   run:
    - libevent {{ libevent }}
    - grpcio {{ grpcio }}
@@ -51,6 +52,7 @@ requirements:
    # Temporarily disable TensorRT 
    #- tensorrt {{ tensorrt }}         # [build_type == 'cuda' and py<38]
    - libmemcpy_wrapper               # [x86_64 and build_type == 'cuda' and (cudatoolkit=='11.0' or cudatoolkit=='11.2' or (cudatoolkit == '10.2' and py<38))]
+   - sqlite >=3.33.0, <4.0
 
 about:
   home: https://www.tensorflow.org/tfx/guide/serving

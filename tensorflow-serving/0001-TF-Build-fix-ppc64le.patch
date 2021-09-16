@@ -1,13 +1,13 @@
-From cc449154e2d8fad2282b727c861b07fae7958aaa Mon Sep 17 00:00:00 2001
+From c3aacc95d53610478b40be549fe48cdc0488d526 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Wed, 15 Sep 2021 07:09:04 -0400
-Subject: [PATCH] TF 2.6 build fix ppc64le
+Date: Thu, 16 Sep 2021 07:25:36 -0400
+Subject: [PATCH] TF 2.6 build fix on ppc64le
 
 ---
  WORKSPACE                                     |   1 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/tensorflow_patches.patch       | 373 ++++++++++++++++++
- 3 files changed, 374 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 417 ++++++++++++++++++
+ 3 files changed, 418 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
@@ -28,13 +28,13 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..d31e25d5
+index 00000000..b885c7b5
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,373 @@
-+From a99b406695608f1350fefa5e2b7fdebd5f3faf7f Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,417 @@
++From 18fd8f7509e3641e27b793370028535eb2d055db Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Wed, 15 Sep 2021 07:06:24 -0400
++Date: Thu, 16 Sep 2021 07:24:32 -0400
 +Subject: [PATCH] tensorflow patches
 +
 +---
@@ -51,8 +51,9 @@ index 00000000..d31e25d5
 + third_party/eigen3/workspace.bzl              |  4 +-
 + third_party/gpus/cuda/BUILD.tpl               |  8 ++++
 + third_party/gpus/cuda_configure.bzl           | 40 +++++++++++++++++++
++ third_party/systemlibs/sqlite.BUILD           | 27 ++++++++++++-
 + third_party/tensorrt/tensorrt_configure.bzl   |  1 +
-+ 14 files changed, 86 insertions(+), 22 deletions(-)
++ 15 files changed, 112 insertions(+), 23 deletions(-)
 +
 +diff --git a/tensorflow/core/kernels/BUILD b/tensorflow/core/kernels/BUILD
 +index 6958d708c41..834d4685c8b 100644
@@ -390,6 +391,49 @@ index 00000000..d31e25d5
 +             "%{cub_actual}": cub_actual,
 +             "%{copy_rules}": "\n".join(copy_rules),
 +         },
++diff --git a/third_party/systemlibs/sqlite.BUILD b/third_party/systemlibs/sqlite.BUILD
++index 88a84a96137..31fc5ed5e88 100644
++--- a/third_party/systemlibs/sqlite.BUILD
+++++ b/third_party/systemlibs/sqlite.BUILD
++@@ -1,12 +1,37 @@
++ licenses(["unencumbered"])  # Public Domain
++ 
+++HEADERS = [
+++   "sqlite3.h",
+++   "sqlite3ext.h",
+++]
+++
+++LIBS = [
+++   "libsqlite3.so",
+++   "libsqlite3.so.0",
+++   "libsqlite3.so.0.8.6",
+++]
+++
++ # Production build of SQLite library that's baked into TensorFlow.
++ cc_library(
++     name = "org_sqlite",
++-    linkopts = ["-lsqlite3"],
+++    hdrs = HEADERS,
+++    srcs = LIBS,
+++    includes = ["."],
++     visibility = ["//visibility:public"],
++ )
++ 
+++genrule(
+++    name = "sqlite-files",
+++    outs = HEADERS + LIBS,
+++    cmd = """
+++      cp -fL "$(INCLUDEDIR)/sqlite3.h" "$(@D)" &&
+++      cp -fL "$(INCLUDEDIR)/sqlite3ext.h" "$(@D)" &&
+++      cp -fL "$(LIBDIR)/libsqlite3.so.0.8.6" "$(@D)" &&
+++      ln -sf "$(LIBDIR)/libsqlite3.so.0.8.6" "$(@D)/libsqlite3.so.0" &&
+++      ln -sf "$(LIBDIR)/libsqlite3.so.0.8.6" "$(@D)/libsqlite3.so"
+++    """,
+++)
+++
++ # This is a Copybara sync helper for Google.
++ py_library(
++     name = "python",
 +diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
 +index db3c65a8766..089d48ef65d 100644
 +--- a/third_party/tensorrt/tensorrt_configure.bzl
