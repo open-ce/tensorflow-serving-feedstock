@@ -1,13 +1,13 @@
-From 2a683396f3e4c16308f1a89820b950bb423e9696 Mon Sep 17 00:00:00 2001
+From fff80f48de716fd6799162792e64981126611180 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Thu, 16 Sep 2021 05:29:16 -0400
+Date: Thu, 16 Sep 2021 09:38:44 -0400
 Subject: [PATCH] TF Build fix x86-64
 
 ---
  WORKSPACE                                     |   1 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/TF-Build-fix-x86-64.patch      | 162 ++++++++++++++++++
- 3 files changed, 163 insertions(+)
+ .../tensorflow/TF-Build-fix-x86-64.patch      | 206 ++++++++++++++++++
+ 3 files changed, 207 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/TF-Build-fix-x86-64.patch
 
@@ -28,13 +28,13 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/TF-Build-fix-x86-64.patch b/third_party/tensorflow/TF-Build-fix-x86-64.patch
 new file mode 100644
-index 00000000..2e6b358d
+index 00000000..45c02ea8
 --- /dev/null
 +++ b/third_party/tensorflow/TF-Build-fix-x86-64.patch
-@@ -0,0 +1,162 @@
-+From 1687180928659f832fc981a924e086de33394cdd Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,206 @@
++From 68d3ba63546cb96537f8ed669bed6727f2ea0e82 Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Thu, 16 Sep 2021 05:27:53 -0400
++Date: Thu, 16 Sep 2021 09:37:21 -0400
 +Subject: [PATCH] TF Build fix x86-64
 +
 +---
@@ -45,9 +45,10 @@ index 00000000..2e6b358d
 + third_party/cub.BUILD                         |  2 +-
 + third_party/eigen3/eigen.patch                | 28 +++++++++++++++++++
 + third_party/eigen3/workspace.bzl              |  1 +
++ third_party/systemlibs/sqlite.BUILD           | 27 +++++++++++++++++-
 + third_party/tensorrt/BUILD.tpl                |  1 +
 + third_party/tensorrt/tensorrt_configure.bzl   |  1 +
-+ 9 files changed, 38 insertions(+), 4 deletions(-)
++ 10 files changed, 64 insertions(+), 5 deletions(-)
 + create mode 100644 third_party/eigen3/eigen.patch
 +
 +diff --git a/tensorflow/core/profiler/utils/xplane_utils.cc b/tensorflow/core/profiler/utils/xplane_utils.cc
@@ -167,6 +168,49 @@ index 00000000..2e6b358d
 +         strip_prefix = "eigen-{commit}".format(commit = EIGEN_COMMIT),
 +         urls = [
 +             "https://storage.googleapis.com/mirror.tensorflow.org/gitlab.com/libeigen/eigen/-/archive/{commit}/eigen-{commit}.tar.gz".format(commit = EIGEN_COMMIT),
++diff --git a/third_party/systemlibs/sqlite.BUILD b/third_party/systemlibs/sqlite.BUILD
++index 88a84a96137..31fc5ed5e88 100644
++--- a/third_party/systemlibs/sqlite.BUILD
+++++ b/third_party/systemlibs/sqlite.BUILD
++@@ -1,12 +1,37 @@
++ licenses(["unencumbered"])  # Public Domain
++ 
+++HEADERS = [
+++   "sqlite3.h",
+++   "sqlite3ext.h",
+++]
+++
+++LIBS = [
+++   "libsqlite3.so",
+++   "libsqlite3.so.0",
+++   "libsqlite3.so.0.8.6",
+++]
+++
++ # Production build of SQLite library that's baked into TensorFlow.
++ cc_library(
++     name = "org_sqlite",
++-    linkopts = ["-lsqlite3"],
+++    hdrs = HEADERS,
+++    srcs = LIBS,
+++    includes = ["."],
++     visibility = ["//visibility:public"],
++ )
++ 
+++genrule(
+++    name = "sqlite-files",
+++    outs = HEADERS + LIBS,
+++    cmd = """
+++      cp -fL "$(INCLUDEDIR)/sqlite3.h" "$(@D)" &&
+++      cp -fL "$(INCLUDEDIR)/sqlite3ext.h" "$(@D)" &&
+++      cp -fL "$(LIBDIR)/libsqlite3.so.0.8.6" "$(@D)" &&
+++      ln -sf "$(LIBDIR)/libsqlite3.so.0.8.6" "$(@D)/libsqlite3.so.0" &&
+++      ln -sf "$(LIBDIR)/libsqlite3.so.0.8.6" "$(@D)/libsqlite3.so"
+++    """,
+++)
+++
++ # This is a Copybara sync helper for Google.
++ py_library(
++     name = "python",
 +diff --git a/third_party/tensorrt/BUILD.tpl b/third_party/tensorrt/BUILD.tpl
 +index 7fa5935d395..f54fe4f7523 100644
 +--- a/third_party/tensorrt/BUILD.tpl
