@@ -1,18 +1,18 @@
-From 968fa8e54bb8f1069a1fa9f9c097eedb3058c7bc Mon Sep 17 00:00:00 2001
+From 4c49f398106e6f4fb6bc3a40734b62c7d706d7f7 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Tue, 1 Jun 2021 05:30:39 -0500
+Date: Thu, 16 Sep 2021 09:27:20 -0400
 Subject: [PATCH] Replace k8 with ppc for Power builds
 
 ---
- tensorflow_serving/tools/pip_package/build_pip_package.sh | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ tensorflow_serving/tools/pip_package/build_pip_package.sh | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/tensorflow_serving/tools/pip_package/build_pip_package.sh b/tensorflow_serving/tools/pip_package/build_pip_package.sh
-index 60f8136d..25410e09 100755
+index 31f42676..16f1385c 100755
 --- a/tensorflow_serving/tools/pip_package/build_pip_package.sh
 +++ b/tensorflow_serving/tools/pip_package/build_pip_package.sh
-@@ -40,7 +40,7 @@ function main() {
-   mkdir -p ${TMPDIR}/tensorflow_serving/util
+@@ -38,7 +38,7 @@ function main() {
+   mkdir -p ${TMPDIR}/tensorflow_serving/config
  
    echo "Adding python files"
 -  cp bazel-out/k8-opt/bin/tensorflow_serving/apis/*_pb2.py \
@@ -20,21 +20,13 @@ index 60f8136d..25410e09 100755
      "${TMPDIR}/tensorflow_serving/apis"
  
    cp ${BAZEL_PROJECT_DIR}/tensorflow_serving/apis/*_pb2.py \
-@@ -49,13 +49,13 @@ function main() {
+@@ -47,7 +47,7 @@ function main() {
    cp ${BAZEL_PROJECT_DIR}/tensorflow_serving/apis/*_grpc.py \
      "${TMPDIR}/tensorflow_serving/apis"
  
 -  cp bazel-out/k8-opt/bin/tensorflow_serving/config/*_pb2.py \
 +  cp bazel-out/ppc-opt/bin/tensorflow_serving/config/*_pb2.py \
      "${TMPDIR}/tensorflow_serving/config"
- 
--  cp bazel-out/k8-opt/bin/tensorflow_serving/core/*_pb2.py \
-+  cp bazel-out/ppc-opt/bin/tensorflow_serving/core/*_pb2.py \
-     "${TMPDIR}/tensorflow_serving/core"
- 
--  cp bazel-out/k8-opt/bin/tensorflow_serving/util/*_pb2.py \
-+  cp bazel-out/ppc-opt/bin/tensorflow_serving/util/*_pb2.py \
-     "${TMPDIR}/tensorflow_serving/util"
  
    touch "${TMPDIR}/tensorflow_serving/apis/__init__.py"
 -- 
