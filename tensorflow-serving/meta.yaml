@@ -9,7 +9,6 @@ source:
    git_rev: {{ version }}
    patches:
      - 0000a-TF-Build-fix-x86-64.patch       # [x86_64 and (build_type == 'cpu' or (build_type == 'cuda' and cudatoolkit == '10.2' and py == 38))]
-     - 0000b-Fix-plus-memcpy-patch.patch     # [x86_64 and build_type == 'cuda' and ((cudatoolkit == '10.2' and py<38) or (cudatoolkit == '11.0' or cudatoolkit == '11.2'))]
      - 0001-TF-Build-fix-ppc64le.patch       # [ppc64le]
  
 build:
@@ -37,7 +36,6 @@ requirements:
    - nccl {{ nccl }}                   # [build_type == 'cuda']
    # Temporarily disable TensorRT
    #   - tensorrt {{ tensorrt }}           # [build_type == 'cuda' and py<38]
-   - libmemcpy_wrapper                 # [x86_64 and build_type == 'cuda' and (cudatoolkit=='11.0' or cudatoolkit=='11.2' or (cudatoolkit == '10.2' and py<38))]
    - numpy {{ numpy }}
    - grpcio {{ grpcio }}
    - python {{ python }}
@@ -51,7 +49,6 @@ requirements:
    - nccl {{ nccl }}                 # [build_type == 'cuda']
    # Temporarily disable TensorRT 
    #- tensorrt {{ tensorrt }}         # [build_type == 'cuda' and py<38]
-   - libmemcpy_wrapper               # [x86_64 and build_type == 'cuda' and (cudatoolkit=='11.0' or cudatoolkit=='11.2' or (cudatoolkit == '10.2' and py<38))]
    - sqlite >=3.33.0, <4.0
 
 about:
