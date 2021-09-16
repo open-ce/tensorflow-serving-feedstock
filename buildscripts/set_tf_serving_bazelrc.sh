@@ -42,6 +42,10 @@ build:opt --copt="${OPTION_1}"
 build:opt --copt="${OPTION_2}"
 build:opt --host_copt="${OPTION_1}"
 build:opt --host_copt="${OPTION_2}"
+build --action_env TF_SYSTEM_LIBS="org_sqlite"
+build --define=PREFIX="$SYSTEM_LIBS_PREFIX"
+build --define=LIBDIR="$SYSTEM_LIBS_PREFIX/lib"
+build --define=INCLUDEDIR="$SYSTEM_LIBS_PREFIX/include"
 build --strip=always
 build --color=yes
 build --verbose_failures
