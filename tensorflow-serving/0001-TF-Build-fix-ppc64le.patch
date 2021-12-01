@@ -1,13 +1,13 @@
-From 69e6fcec523bcd1c143ba7a5c9ae2c0974367ead Mon Sep 17 00:00:00 2001
+From 36286602d43303245283f49f0ef7f0e4a31db05b Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Thu, 25 Nov 2021 07:45:43 -0500
+Date: Tue, 30 Nov 2021 11:22:25 -0500
 Subject: [PATCH] TF build fix on ppc64le
 
 ---
  WORKSPACE                                     |   1 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/tensorflow_patches.patch       | 241 ++++++++++++++++++
- 3 files changed, 242 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 288 ++++++++++++++++++
+ 3 files changed, 289 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
@@ -28,14 +28,14 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..3e00fbc8
+index 00000000..e06b04d3
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,241 @@
-+From 8b8b9f20f2740e37be10ca302ac5aa5cedffe0d3 Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,288 @@
++From 7bf6b7def1cbeb7966fb96c0caed0cd70fb807bd Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Thu, 25 Nov 2021 07:44:36 -0500
-+Subject: [PATCH] tensorflow patches
++Date: Tue, 30 Nov 2021 11:21:05 -0500
++Subject: [PATCH] TF build patches for ppc64le
 +
 +---
 + .../core/platform/default/build_config/BUILD  |  2 +
@@ -44,9 +44,10 @@ index 00000000..3e00fbc8
 + tensorflow/stream_executor/cuda/BUILD         |  2 +-
 + third_party/gpus/cuda/BUILD.tpl               |  8 ++++
 + third_party/gpus/cuda_configure.bzl           | 40 +++++++++++++++++++
++ third_party/llvm/macos_build_fix.patch        | 25 +++++++-----
 + third_party/systemlibs/sqlite.BUILD           | 27 ++++++++++++-
 + third_party/tensorrt/tensorrt_configure.bzl   |  1 +
-+ 8 files changed, 81 insertions(+), 4 deletions(-)
++ 9 files changed, 95 insertions(+), 15 deletions(-)
 +
 +diff --git a/tensorflow/core/platform/default/build_config/BUILD b/tensorflow/core/platform/default/build_config/BUILD
 +index 9746e6e5222..359f756043e 100644
@@ -215,6 +216,52 @@ index 00000000..3e00fbc8
 +             "%{cub_actual}": cub_actual,
 +             "%{copy_rules}": "\n".join(copy_rules),
 +         },
++diff --git a/third_party/llvm/macos_build_fix.patch b/third_party/llvm/macos_build_fix.patch
++index 8ff52f906a6..7f7be7e2bf7 100644
++--- a/third_party/llvm/macos_build_fix.patch
+++++ b/third_party/llvm/macos_build_fix.patch
++@@ -1,27 +1,30 @@
++-From 1ebfdd7ba05aa861df0397caf4c910c4d6a2690f Mon Sep 17 00:00:00 2001
++-From: Rahul Joshi <jurahul@google.com>
++-Date: Wed, 29 Sep 2021 11:13:44 -0700
+++From ab552b4cf33a813129190838778b16d05b4c3ab1 Mon Sep 17 00:00:00 2001
+++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
+++Date: Tue, 30 Nov 2021 11:19:13 -0500
++ Subject: [PATCH] Revert "[Bazel] Add support for targeting macOS arm64"
++ 
++ This reverts commit 33e1713a00a5291e5de658d0eb0aebdbf1d3aa03.
+++Also adds support for linux_ppc64le.
++ ---
++- utils/bazel/llvm-project-overlay/llvm/config.bzl | 3 +--
++- 1 file changed, 1 insertion(+), 2 deletions(-)
+++ utils/bazel/llvm-project-overlay/llvm/config.bzl | 4 ++--
+++ 1 file changed, 2 insertions(+), 2 deletions(-)
++ 
++ diff --git a/utils/bazel/llvm-project-overlay/llvm/config.bzl b/utils/bazel/llvm-project-overlay/llvm/config.bzl
++-index ff64df694048..55f3077bff74 100644
+++index ff64df694048..8cd5c6fd0b06 100644
++ --- a/utils/bazel/llvm-project-overlay/llvm/config.bzl
++ +++ b/utils/bazel/llvm-project-overlay/llvm/config.bzl
++-@@ -76,8 +76,7 @@ os_defines = select({
++- # TODO: We should split out host vs. target here.
+++@@ -77,9 +77,9 @@ os_defines = select({
++  llvm_config_defines = os_defines + select({
++      "@bazel_tools//src/conditions:windows": native_arch_defines("X86", "x86_64-pc-win32"),
++--    "@bazel_tools//src/conditions:darwin_arm64": native_arch_defines("AArch64", "arm64-apple-darwin"),
+++     "@bazel_tools//src/conditions:darwin_arm64": native_arch_defines("AArch64", "arm64-apple-darwin"),
++ -    "@bazel_tools//src/conditions:darwin_x86_64": native_arch_defines("X86", "x86_64-unknown-darwin"),
++ +    "@bazel_tools//src/conditions:darwin": native_arch_defines("X86", "x86_64-unknown-darwin"),
++      "@bazel_tools//src/conditions:linux_aarch64": native_arch_defines("AArch64", "aarch64-unknown-linux-gnu"),
++-     "//conditions:default": native_arch_defines("X86", "x86_64-unknown-linux-gnu"),
+++-    "//conditions:default": native_arch_defines("X86", "x86_64-unknown-linux-gnu"),
++++    "//conditions:default": native_arch_defines("PowerPC", "powerpc64le-unknown-linux-gnu"),
++  }) + [
+++     # These shouldn't be needed by the C++11 standard, but are for some
+++     # platforms (e.g. glibc < 2.18. See
++ -- 
++-2.33.0.685.g46640cef36-goog
+++2.23.0
++ 
 +diff --git a/third_party/systemlibs/sqlite.BUILD b/third_party/systemlibs/sqlite.BUILD
 +index 88a84a96137..31fc5ed5e88 100644
 +--- a/third_party/systemlibs/sqlite.BUILD
@@ -271,8 +318,8 @@ index 00000000..3e00fbc8
 +     headers = _get_tensorrt_headers(trt_version)
 +     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
-+2.32.0
++2.23.0
 +
 -- 
-2.32.0
+2.23.0
 
