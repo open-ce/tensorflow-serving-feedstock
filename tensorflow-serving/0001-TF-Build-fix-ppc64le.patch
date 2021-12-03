@@ -1,24 +1,24 @@
-From e8ced04bbbc94779089795fb65bbbdf13568f7a5 Mon Sep 17 00:00:00 2001
+From 36286602d43303245283f49f0ef7f0e4a31db05b Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Tue, 9 Nov 2021 05:45:29 -0500
-Subject: [PATCH] TF 2.6 build fix on ppc64le
+Date: Tue, 30 Nov 2021 11:22:25 -0500
+Subject: [PATCH] TF build fix on ppc64le
 
 ---
  WORKSPACE                                     |   1 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/tensorflow_patches.patch       | 417 ++++++++++++++++++
- 3 files changed, 418 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 288 ++++++++++++++++++
+ 3 files changed, 289 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 908887af..405395ff 100644
+index 18af812a..92cb4302 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -17,6 +17,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "add5982a3ce3b9964b7122dd0d28927b6a9d9abd8f95a89eda18ca76648a0ae8",
-     git_commit = "c2363d6d025981c661f8cbecf4c73ca7fbf38caf",
+     sha256 = "ff0df77ec72676d3260502dd19f34518ecd65bb9ead4f7dfdf8bd11cff8640e3",
+     git_commit = "c256c071bb26e1e13b4666d1b3e229e110bc914a",
 +    patch = "//third_party/tensorflow:tensorflow_patches.patch",
  )
  
@@ -28,176 +28,27 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..b885c7b5
+index 00000000..e06b04d3
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,417 @@
-+From 18fd8f7509e3641e27b793370028535eb2d055db Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,288 @@
++From 7bf6b7def1cbeb7966fb96c0caed0cd70fb807bd Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Thu, 16 Sep 2021 07:24:32 -0400
-+Subject: [PATCH] tensorflow patches
++Date: Tue, 30 Nov 2021 11:21:05 -0500
++Subject: [PATCH] TF build patches for ppc64le
 +
 +---
-+ tensorflow/core/kernels/BUILD                 |  6 ++-
-+ .../eigen_backward_cuboid_convolutions.h      |  1 +
-+ .../eigen_backward_spatial_convolutions.h     |  1 +
-+ .../core/kernels/eigen_cuboid_convolution.h   | 18 +++++----
-+ .../kernels/eigen_spatial_convolutions-inl.h  | 18 +++++----
 + .../core/platform/default/build_config/BUILD  |  2 +
 + .../core/profiler/utils/xplane_utils.cc       |  3 +-
 + tensorflow/python/lib/core/ndarray_tensor.cc  |  2 +-
 + tensorflow/stream_executor/cuda/BUILD         |  2 +-
-+ third_party/cub.BUILD                         |  2 +-
-+ third_party/eigen3/workspace.bzl              |  4 +-
 + third_party/gpus/cuda/BUILD.tpl               |  8 ++++
 + third_party/gpus/cuda_configure.bzl           | 40 +++++++++++++++++++
++ third_party/llvm/macos_build_fix.patch        | 25 +++++++-----
 + third_party/systemlibs/sqlite.BUILD           | 27 ++++++++++++-
 + third_party/tensorrt/tensorrt_configure.bzl   |  1 +
-+ 15 files changed, 112 insertions(+), 23 deletions(-)
++ 9 files changed, 95 insertions(+), 15 deletions(-)
 +
-+diff --git a/tensorflow/core/kernels/BUILD b/tensorflow/core/kernels/BUILD
-+index 6958d708c41..834d4685c8b 100644
-+--- a/tensorflow/core/kernels/BUILD
-++++ b/tensorflow/core/kernels/BUILD
-+@@ -942,6 +942,9 @@ cc_library(
-+         "eigen_convolution_helpers.h",
-+     ],
-+     compatible_with = get_compatible_with_portable(),
-++    defines = [
-++        "EIGEN_ALTIVEC_USE_CUSTOM_PACK=0",
-++    ],
-+ )
-+ 
-+ # OpKernel libraries ----------------------------------------------------------
-+@@ -3974,8 +3977,7 @@ cc_library(
-+     ],
-+ )
-+ 
-+-NN_DEPS = [
-+-    ":conv_2d",
-++NN_DEPS = if_cuda_or_rocm([":conv_2d"]) + [
-+     ":eigen_contraction_kernel",
-+     ":ops_util",
-+     "//tensorflow/core:framework",
-+diff --git a/tensorflow/core/kernels/eigen_backward_cuboid_convolutions.h b/tensorflow/core/kernels/eigen_backward_cuboid_convolutions.h
-+index 9a2d431b0d8..958f1149dc9 100644
-+--- a/tensorflow/core/kernels/eigen_backward_cuboid_convolutions.h
-++++ b/tensorflow/core/kernels/eigen_backward_cuboid_convolutions.h
-+@@ -17,6 +17,7 @@ limitations under the License.
-+ #define TENSORFLOW_CORE_KERNELS_EIGEN_BACKWARD_CUBOID_CONVOLUTIONS_H_
-+ 
-+ #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
-++#include "tensorflow/core/kernels/eigen_cuboid_convolution.h"
-+ 
-+ namespace Eigen {
-+ 
-+diff --git a/tensorflow/core/kernels/eigen_backward_spatial_convolutions.h b/tensorflow/core/kernels/eigen_backward_spatial_convolutions.h
-+index 8c4c86acd66..881efed4bc2 100644
-+--- a/tensorflow/core/kernels/eigen_backward_spatial_convolutions.h
-++++ b/tensorflow/core/kernels/eigen_backward_spatial_convolutions.h
-+@@ -17,6 +17,7 @@ limitations under the License.
-+ #define TENSORFLOW_CORE_KERNELS_EIGEN_BACKWARD_SPATIAL_CONVOLUTIONS_H_
-+ 
-+ #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
-++#include "tensorflow/core/kernels/eigen_spatial_convolutions.h"
-+ 
-+ namespace Eigen {
-+ 
-+diff --git a/tensorflow/core/kernels/eigen_cuboid_convolution.h b/tensorflow/core/kernels/eigen_cuboid_convolution.h
-+index d12db1b92a0..bf0cdd59e4f 100644
-+--- a/tensorflow/core/kernels/eigen_cuboid_convolution.h
-++++ b/tensorflow/core/kernels/eigen_cuboid_convolution.h
-+@@ -24,17 +24,11 @@ limitations under the License.
-+ 
-+ #include "tensorflow/core/kernels/eigen_convolution_helpers.h"
-+ 
-+-#if defined(EIGEN_VECTORIZE_ALTIVEC) || defined(EIGEN_VECTORIZE_VSX)
-+-#define TF_USE_CUSTOM_EIGEN_PACK 0
-+-#else
-+-#define TF_USE_CUSTOM_EIGEN_PACK 1
-+-#endif
-+-
-+ namespace Eigen {
-+ 
-+ namespace internal {
-+ 
-+-#if TF_USE_CUSTOM_EIGEN_PACK
-++#if !EIGEN_ALTIVEC_USE_CUSTOM_PACK
-+ // WARNING: Most of the code here implicitly assumes that the matrix is in
-+ // ColMajor layout. This is guaranteed by the tensor contraction (see
-+ // TensorContraction.h).
-+@@ -1364,6 +1358,15 @@ struct gemm_pack_rhs<
-+     }
-+ 
-+     // Copy the remaining columns one at a time (nr==1).
-++#if defined(EIGEN_VECTORIZE_ALTIVEC) || defined(EIGEN_VECTORIZE_VSX)
-++    // remaining columns are handled different for PPC
-++    for (Index k = 0; k < depth; k++) {
-++      for (Index j2 = packet_cols4; j2 < cols; ++j2) {
-++        *block = rhs(k, j2);
-++        block += 1;
-++      }
-++    }
-++#else
-+     for (Index j2 = packet_cols4; j2 < cols; ++j2) {
-+       const SubMapper dm0 = rhs.getLinearMapper(0, j2);
-+       for (Index k = 0; k < depth; k++) {
-+@@ -1371,6 +1374,7 @@ struct gemm_pack_rhs<
-+         block += 1;
-+       }
-+     }
-++#endif
-+   }
-+ };
-+ 
-+diff --git a/tensorflow/core/kernels/eigen_spatial_convolutions-inl.h b/tensorflow/core/kernels/eigen_spatial_convolutions-inl.h
-+index b195a714387..61cfc820a6c 100644
-+--- a/tensorflow/core/kernels/eigen_spatial_convolutions-inl.h
-++++ b/tensorflow/core/kernels/eigen_spatial_convolutions-inl.h
-+@@ -18,18 +18,12 @@ limitations under the License.
-+ 
-+ #include "tensorflow/core/kernels/eigen_convolution_helpers.h"
-+ 
-+-#if defined(EIGEN_VECTORIZE_ALTIVEC) || defined(EIGEN_VECTORIZE_VSX)
-+-#define TF_USE_CUSTOM_EIGEN_PACK 0
-+-#else
-+-#define TF_USE_CUSTOM_EIGEN_PACK 1
-+-#endif
-+-
-+ // Note this header is used in both TF and TFLite.
-+ namespace Eigen {
-+ 
-+ namespace internal {
-+ 
-+-#if TF_USE_CUSTOM_EIGEN_PACK
-++#if !EIGEN_ALTIVEC_USE_CUSTOM_PACK
-+ // WARNING: Most of the code here implicitly assumes that the matrix is in
-+ // ColMajor layout. This is guaranteed by the tensor contraction (see
-+ // TensorContraction.h).
-+@@ -1239,6 +1233,15 @@ struct gemm_pack_rhs<
-+     }
-+ 
-+     // copy the remaining columns one at a time (nr==1)
-++#if defined(EIGEN_VECTORIZE_ALTIVEC) || defined(EIGEN_VECTORIZE_VSX)
-++    // remaining columns are handled different for PPC
-++    for (Index k = 0; k < depth; k++) {
-++      for (Index j2 = packet_cols4; j2 < cols; ++j2) {
-++        *block = rhs(k, j2);
-++        block += 1;
-++      }
-++    }
-++#else
-+     for (Index j2 = packet_cols4; j2 < cols; ++j2) {
-+       const SubMapper dm0 = rhs.getLinearMapper(0, j2);
-+       for (Index k = 0; k < depth; k++) {
-+@@ -1246,6 +1249,7 @@ struct gemm_pack_rhs<
-+         block += 1;
-+       }
-+     }
-++#endif
-+   }
-+ };
-+ 
 +diff --git a/tensorflow/core/platform/default/build_config/BUILD b/tensorflow/core/platform/default/build_config/BUILD
 +index 9746e6e5222..359f756043e 100644
 +--- a/tensorflow/core/platform/default/build_config/BUILD
@@ -214,7 +65,7 @@ index 00000000..b885c7b5
 +     }),
 +     deps = [
 +diff --git a/tensorflow/core/profiler/utils/xplane_utils.cc b/tensorflow/core/profiler/utils/xplane_utils.cc
-+index 5b7d22ce22f..bcaff8e634a 100644
++index 5efcdcda4b0..f012d7f99e2 100644
 +--- a/tensorflow/core/profiler/utils/xplane_utils.cc
 ++++ b/tensorflow/core/profiler/utils/xplane_utils.cc
 +@@ -101,7 +101,8 @@ const XPlane* FindPlaneWithName(const XSpace& space, absl::string_view name) {
@@ -228,7 +79,7 @@ index 00000000..b885c7b5
 +       FindAll(space.planes(), [&names_set](const XPlane* plane) {
 +         return names_set.contains(plane->name());
 +diff --git a/tensorflow/python/lib/core/ndarray_tensor.cc b/tensorflow/python/lib/core/ndarray_tensor.cc
-+index 6cf51ceebbd..b7bd5a87c89 100644
++index 06a43792928..9d1ac67ed1b 100644
 +--- a/tensorflow/python/lib/core/ndarray_tensor.cc
 ++++ b/tensorflow/python/lib/core/ndarray_tensor.cc
 +@@ -16,7 +16,7 @@ limitations under the License.
@@ -241,10 +92,10 @@ index 00000000..b885c7b5
 + #include "tensorflow/c/eager/tfe_context_internal.h"
 + #include "tensorflow/c/tf_tensor_internal.h"
 +diff --git a/tensorflow/stream_executor/cuda/BUILD b/tensorflow/stream_executor/cuda/BUILD
-+index dea06e0efd4..9db66329121 100644
++index 98a60e33f12..e736a07e01b 100644
 +--- a/tensorflow/stream_executor/cuda/BUILD
 ++++ b/tensorflow/stream_executor/cuda/BUILD
-+@@ -270,7 +270,7 @@ alias(
++@@ -264,7 +264,7 @@ alias(
 +     name = "cublas_lt_lib",
 +     actual = select({
 +         "//tensorflow:oss": ":cublas_lt_stub",
@@ -253,32 +104,6 @@ index 00000000..b885c7b5
 +     }),
 +     visibility = ["//visibility:public"],
 + )
-+diff --git a/third_party/cub.BUILD b/third_party/cub.BUILD
-+index 581d8dd9421..c446f0517d3 100644
-+--- a/third_party/cub.BUILD
-++++ b/third_party/cub.BUILD
-+@@ -11,5 +11,5 @@ exports_files(["LICENSE.TXT"])
-+ cc_library(
-+     name = "cub",
-+     hdrs = glob(["cub/**"]),
-+-    deps = ["@local_cuda//:cuda_headers"],
-++    deps = ["@local_config_cuda//cuda:cuda_headers"],
-+ )
-+diff --git a/third_party/eigen3/workspace.bzl b/third_party/eigen3/workspace.bzl
-+index 736b61adc30..96371dda195 100644
-+--- a/third_party/eigen3/workspace.bzl
-++++ b/third_party/eigen3/workspace.bzl
-+@@ -6,8 +6,8 @@ def repo():
-+     """Imports Eigen."""
-+ 
-+     # Attention: tools parse and update these lines.
-+-    EIGEN_COMMIT = "12e8d57108c50d8a63605c6eb0144c838c128337"
-+-    EIGEN_SHA256 = "f689246e342c3955af48d26ce74ac34d21b579a00675c341721a735937919b02"
-++    EIGEN_COMMIT = "7b35638ddb99a0298c5d3450de506a8e8e0203d3"
-++    EIGEN_SHA256 = "2f25d7d0279c57ce7c533bc71ba78af9c24a0a0aac4102bfeb28c2b5737499d1"
-+ 
-+     tf_http_archive(
-+         name = "eigen_archive",
 +diff --git a/third_party/gpus/cuda/BUILD.tpl b/third_party/gpus/cuda/BUILD.tpl
 +index 8f783e58d66..3590ce32dae 100644
 +--- a/third_party/gpus/cuda/BUILD.tpl
@@ -391,6 +216,52 @@ index 00000000..b885c7b5
 +             "%{cub_actual}": cub_actual,
 +             "%{copy_rules}": "\n".join(copy_rules),
 +         },
++diff --git a/third_party/llvm/macos_build_fix.patch b/third_party/llvm/macos_build_fix.patch
++index 8ff52f906a6..7f7be7e2bf7 100644
++--- a/third_party/llvm/macos_build_fix.patch
+++++ b/third_party/llvm/macos_build_fix.patch
++@@ -1,27 +1,30 @@
++-From 1ebfdd7ba05aa861df0397caf4c910c4d6a2690f Mon Sep 17 00:00:00 2001
++-From: Rahul Joshi <jurahul@google.com>
++-Date: Wed, 29 Sep 2021 11:13:44 -0700
+++From ab552b4cf33a813129190838778b16d05b4c3ab1 Mon Sep 17 00:00:00 2001
+++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
+++Date: Tue, 30 Nov 2021 11:19:13 -0500
++ Subject: [PATCH] Revert "[Bazel] Add support for targeting macOS arm64"
++ 
++ This reverts commit 33e1713a00a5291e5de658d0eb0aebdbf1d3aa03.
+++Also adds support for linux_ppc64le.
++ ---
++- utils/bazel/llvm-project-overlay/llvm/config.bzl | 3 +--
++- 1 file changed, 1 insertion(+), 2 deletions(-)
+++ utils/bazel/llvm-project-overlay/llvm/config.bzl | 4 ++--
+++ 1 file changed, 2 insertions(+), 2 deletions(-)
++ 
++ diff --git a/utils/bazel/llvm-project-overlay/llvm/config.bzl b/utils/bazel/llvm-project-overlay/llvm/config.bzl
++-index ff64df694048..55f3077bff74 100644
+++index ff64df694048..8cd5c6fd0b06 100644
++ --- a/utils/bazel/llvm-project-overlay/llvm/config.bzl
++ +++ b/utils/bazel/llvm-project-overlay/llvm/config.bzl
++-@@ -76,8 +76,7 @@ os_defines = select({
++- # TODO: We should split out host vs. target here.
+++@@ -77,9 +77,9 @@ os_defines = select({
++  llvm_config_defines = os_defines + select({
++      "@bazel_tools//src/conditions:windows": native_arch_defines("X86", "x86_64-pc-win32"),
++--    "@bazel_tools//src/conditions:darwin_arm64": native_arch_defines("AArch64", "arm64-apple-darwin"),
+++     "@bazel_tools//src/conditions:darwin_arm64": native_arch_defines("AArch64", "arm64-apple-darwin"),
++ -    "@bazel_tools//src/conditions:darwin_x86_64": native_arch_defines("X86", "x86_64-unknown-darwin"),
++ +    "@bazel_tools//src/conditions:darwin": native_arch_defines("X86", "x86_64-unknown-darwin"),
++      "@bazel_tools//src/conditions:linux_aarch64": native_arch_defines("AArch64", "aarch64-unknown-linux-gnu"),
++-     "//conditions:default": native_arch_defines("X86", "x86_64-unknown-linux-gnu"),
+++-    "//conditions:default": native_arch_defines("X86", "x86_64-unknown-linux-gnu"),
++++    "//conditions:default": native_arch_defines("PowerPC", "powerpc64le-unknown-linux-gnu"),
++  }) + [
+++     # These shouldn't be needed by the C++11 standard, but are for some
+++     # platforms (e.g. glibc < 2.18. See
++ -- 
++-2.33.0.685.g46640cef36-goog
+++2.23.0
++ 
 +diff --git a/third_party/systemlibs/sqlite.BUILD b/third_party/systemlibs/sqlite.BUILD
 +index 88a84a96137..31fc5ed5e88 100644
 +--- a/third_party/systemlibs/sqlite.BUILD

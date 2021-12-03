@@ -50,6 +50,14 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PREFIX}/lib
 bazel clean --expunge
 bazel shutdown
 
+# On x86, use of new compilers (gcc8) gives "ModuleNotFoundError: No module named '_sysconfigdata_x86_64_conda_linux_gnu'"# This is due to the target triple difference with which python and conda-build are built. Below is the work around to this problem.
+# Conda-forge's python-feedstock has a patch https://github.com/conda-forge/python-feedstock/blob/master/recipe/patches/0010-Add-support-for-_CONDA_PYTHON_SYSCONFIGDATA_NAME-if-.patch which may address this problem.
+
+ARCH=`uname -m`
+if [[ $ARCH == "x86_64" ]]; then
+  cp $PREFIX/lib/python${PY_VER}/_sysconfigdata_x86_64_conda_cos6_linux_gnu.py $PREFIX/lib/python${PY_VER}/_sysconfigdata_x86_64_conda_linux_gnu.py
+fi
+
 bazel --bazelrc=$SRC_DIR/tensorflow_serving/tensorflow-serving.bazelrc build ${BUILD_OPTS} \
     --local_cpu_resources=HOST_CPUS-10 \
     --local_ram_resources=HOST_RAM*0.50 \
