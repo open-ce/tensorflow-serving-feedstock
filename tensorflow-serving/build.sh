@@ -1,6 +1,6 @@
 #!/bin/bash
 # *****************************************************************
-# (C) Copyright IBM Corp. 2019, 2021. All Rights Reserved.
+# (C) Copyright IBM Corp. 2019, 2022. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,27 @@ SCRIPT_DIR=$RECIPE_DIR/../buildscripts
 # Determine architecture for specific settings
 ARCH=`uname -p`
 
+if [[ $ppc_arch == "p10" ]]
+then
+    if [[ -z "${GCC_10_HOME}" ]];
+    then
+        echo "Please set GCC_10_HOME to the install path of gcc-toolset-10"
+        exit 1
+    else
+        export PATH=$GCC_10_HOME/bin:$PATH
+        export CC=$GCC_10_HOME/bin/gcc
+        export CXX=$GCC_10_HOME/bin/g++
+        export BAZEL_LINKLIBS=-l%:libstdc++.a
+        ln -s $GCC $CC
+        ln -s $GXX $CXX
+        ln -s $LD $GCC_10_HOME/bin/ld
+    fi
+else
+    ln -s $GCC $PREFIX/gcc
+    ln -s $GXX $PREFIX/g++
+    ln -s $LD $BUILD_PREFIX/bin/ld
+fi
+
 # Pick up additional variables defined from the conda build environment
 $SCRIPT_DIR/set_python_path_for_bazelrc.sh $SRC_DIR/tensorflow_serving
 if [[ $build_type == "cuda" ]]
@@ -37,10 +58,6 @@ BUILD_OPTS=" "
 if [[ "${ARCH}" != 'ppc64le' ]]; then
   BUILD_OPTS+=" --config=release"
 fi
-
-ln -s $GCC $PREFIX/gcc
-ln -s $GXX $PREFIX/g++
-ln -s $LD $BUILD_PREFIX/bin/ld
 
 if [ "${build_type}" = "mkl" ]; then
   BUILD_OPTS+=" --config=mkl"
@@ -72,7 +89,10 @@ chmod u+w bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server
 mkdir -p "${PREFIX}"/bin
 cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server "${PREFIX}"/bin
 
-rm $PREFIX/gcc
-rm $PREFIX/g++
+if [[ $ppc_arch != "p10" ]]
+then
+    rm $PREFIX/gcc
+    rm $PREFIX/g++
+fi
 bazel clean --expunge
 bazel shutdown
