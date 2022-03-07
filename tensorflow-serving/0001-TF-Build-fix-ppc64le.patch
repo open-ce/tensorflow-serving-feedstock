@@ -1,13 +1,13 @@
-From 36286602d43303245283f49f0ef7f0e4a31db05b Mon Sep 17 00:00:00 2001
+From f350567dfc0c1fd14d1fedb457a60bece28fce03 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Tue, 30 Nov 2021 11:22:25 -0500
+Date: Mon, 7 Mar 2022 15:22:55 +0000
 Subject: [PATCH] TF build fix on ppc64le
 
 ---
  WORKSPACE                                     |   1 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/tensorflow_patches.patch       | 288 ++++++++++++++++++
- 3 files changed, 289 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 447 ++++++++++++++++++
+ 3 files changed, 448 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
@@ -28,13 +28,13 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..e06b04d3
+index 00000000..3ed046ae
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,288 @@
-+From 7bf6b7def1cbeb7966fb96c0caed0cd70fb807bd Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,447 @@
++From b96fd4f7c44e0e620f37571be163e969be7b96ad Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Tue, 30 Nov 2021 11:21:05 -0500
++Date: Mon, 7 Mar 2022 15:21:54 +0000
 +Subject: [PATCH] TF build patches for ppc64le
 +
 +---
@@ -42,12 +42,16 @@ index 00000000..e06b04d3
 + .../core/profiler/utils/xplane_utils.cc       |  3 +-
 + tensorflow/python/lib/core/ndarray_tensor.cc  |  2 +-
 + tensorflow/stream_executor/cuda/BUILD         |  2 +-
-+ third_party/gpus/cuda/BUILD.tpl               |  8 ++++
-+ third_party/gpus/cuda_configure.bzl           | 40 +++++++++++++++++++
-+ third_party/llvm/macos_build_fix.patch        | 25 +++++++-----
-+ third_party/systemlibs/sqlite.BUILD           | 27 ++++++++++++-
++ tensorflow/workspace2.bzl                     | 11 ++++
++ third_party/gpus/cuda/BUILD.tpl               |  8 +++
++ third_party/gpus/cuda_configure.bzl           | 40 +++++++++++++
++ third_party/grpc/generate_cc_env_fix.patch    | 60 ++++++++++++++++++-
++ third_party/grpc/upb_gcc10.patch              | 54 +++++++++++++++++
++ third_party/llvm/macos_build_fix.patch        | 25 ++++----
++ third_party/systemlibs/sqlite.BUILD           | 27 ++++++++-
 + third_party/tensorrt/tensorrt_configure.bzl   |  1 +
-+ 9 files changed, 95 insertions(+), 15 deletions(-)
++ 12 files changed, 218 insertions(+), 17 deletions(-)
++ create mode 100644 third_party/grpc/upb_gcc10.patch
 +
 +diff --git a/tensorflow/core/platform/default/build_config/BUILD b/tensorflow/core/platform/default/build_config/BUILD
 +index 9746e6e5222..359f756043e 100644
@@ -104,6 +108,28 @@ index 00000000..e06b04d3
 +     }),
 +     visibility = ["//visibility:public"],
 + )
++diff --git a/tensorflow/workspace2.bzl b/tensorflow/workspace2.bzl
++index eaa2863cfaa..cc1f7dcd4da 100644
++--- a/tensorflow/workspace2.bzl
+++++ b/tensorflow/workspace2.bzl
++@@ -617,6 +617,17 @@ def _tf_repositories():
++         ],
++     )
++ 
+++    tf_http_archive(
+++        name = "upb",
+++        sha256 = "61d0417abd60e65ed589c9deee7c124fe76a4106831f6ad39464e1525cef1454",
+++        strip_prefix = "upb-9effcbcb27f0a665f9f345030188c0b291e32482",
+++        urls = [
+++            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/protocolbuffers/upb/archive/9effcbcb27f0a665f9f345030188c0b291e32482.tar.gz",
+++            "https://github.com/protocolbuffers/upb/archive/9effcbcb27f0a665f9f345030188c0b291e32482.tar.gz",
+++        ],
+++        patch_file = "//third_party/grpc:upb_gcc10.patch",
+++    )
+++
++     # WARNING: make sure ncteisen@ and vpai@ are cc-ed on any CL to change the below rule
++     tf_http_archive(
++         name = "com_github_grpc_grpc",
 +diff --git a/third_party/gpus/cuda/BUILD.tpl b/third_party/gpus/cuda/BUILD.tpl
 +index 8f783e58d66..3590ce32dae 100644
 +--- a/third_party/gpus/cuda/BUILD.tpl
@@ -216,6 +242,139 @@ index 00000000..e06b04d3
 +             "%{cub_actual}": cub_actual,
 +             "%{copy_rules}": "\n".join(copy_rules),
 +         },
++diff --git a/third_party/grpc/generate_cc_env_fix.patch b/third_party/grpc/generate_cc_env_fix.patch
++index 51832fe9628..84093655824 100644
++--- a/third_party/grpc/generate_cc_env_fix.patch
+++++ b/third_party/grpc/generate_cc_env_fix.patch
++@@ -1,10 +1,66 @@
+++From d2cef9a0b4c07030426aebcff4d596056daa80c1 Mon Sep 17 00:00:00 2001
+++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
+++Date: Mon, 7 Mar 2022 15:13:10 +0000
+++Subject: [PATCH] Patch thirdparty upb
+++
+++---
+++ bazel/generate_cc.bzl     |  1 +
+++ third_party/upb/upb/upb.c | 16 +++-------------
+++ 2 files changed, 4 insertions(+), 13 deletions(-)
+++
+++diff --git a/bazel/generate_cc.bzl b/bazel/generate_cc.bzl
+++index 484959ebb7..81d52fd28f 100644
++ --- a/bazel/generate_cc.bzl
++ +++ b/bazel/generate_cc.bzl
++-@@ -141,6 +141,7 @@ def generate_cc_impl(ctx):
+++@@ -140,6 +140,7 @@ def generate_cc_impl(ctx):
++          outputs = out_files,
++          executable = ctx.executable._protoc,
++          arguments = arguments,
++ +        use_default_shell_env = True,
++      )
++-
+++ 
++      return struct(files = depset(out_files))
+++diff --git a/third_party/upb/upb/upb.c b/third_party/upb/upb/upb.c
+++index 266ea7d7f9..14a97bc584 100644
+++--- a/third_party/upb/upb/upb.c
++++++ b/third_party/upb/upb/upb.c
+++@@ -11,16 +11,6 @@
+++ 
+++ #include "upb/port_def.inc"
+++ 
+++-/* Guarantee null-termination and provide ellipsis truncation.
+++- * It may be tempting to "optimize" this by initializing these final
+++- * four bytes up-front and then being careful never to overwrite them,
+++- * this is safer and simpler. */
+++-static void nullz(upb_status *status) {
+++-  const char *ellipsis = "...";
+++-  size_t len = strlen(ellipsis);
+++-  UPB_ASSERT(sizeof(status->msg) > len);
+++-  memcpy(status->msg + sizeof(status->msg) - len, ellipsis, len);
+++-}
+++ 
+++ /* upb_status *****************************************************************/
+++ 
+++@@ -37,8 +27,8 @@ const char *upb_status_errmsg(const upb_status *status) { return status->msg; }
+++ void upb_status_seterrmsg(upb_status *status, const char *msg) {
+++   if (!status) return;
+++   status->ok = false;
+++-  strncpy(status->msg, msg, sizeof(status->msg));
+++-  nullz(status);
++++  strncpy(status->msg, msg, UPB_STATUS_MAX_MESSAGE - 1);
++++  status->msg[UPB_STATUS_MAX_MESSAGE - 1] = '\0';
+++ }
+++ 
+++ void upb_status_seterrf(upb_status *status, const char *fmt, ...) {
+++@@ -52,7 +42,7 @@ void upb_status_vseterrf(upb_status *status, const char *fmt, va_list args) {
+++   if (!status) return;
+++   status->ok = false;
+++   _upb_vsnprintf(status->msg, sizeof(status->msg), fmt, args);
+++-  nullz(status);
++++  status->msg[UPB_STATUS_MAX_MESSAGE - 1] = '\0';
+++ }
+++ 
+++ /* upb_alloc ******************************************************************/
+++-- 
+++2.34.1
+++
++diff --git a/third_party/grpc/upb_gcc10.patch b/third_party/grpc/upb_gcc10.patch
++new file mode 100644
++index 00000000000..7d747c48083
++--- /dev/null
+++++ b/third_party/grpc/upb_gcc10.patch
++@@ -0,0 +1,54 @@
+++From 57028552ed072263cd6656e5feed67ff89a55e43 Mon Sep 17 00:00:00 2001
+++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
+++Date: Mon, 7 Mar 2022 15:08:33 +0000
+++Subject: [PATCH] Fix for build failure with GCC10
+++
+++---
+++ upb/upb.c | 17 +++--------------
+++ 1 file changed, 3 insertions(+), 14 deletions(-)
+++
+++diff --git a/upb/upb.c b/upb/upb.c
+++index 266ea7d..1410b2d 100644
+++--- a/upb/upb.c
++++++ b/upb/upb.c
+++@@ -11,17 +11,6 @@
+++ 
+++ #include "upb/port_def.inc"
+++ 
+++-/* Guarantee null-termination and provide ellipsis truncation.
+++- * It may be tempting to "optimize" this by initializing these final
+++- * four bytes up-front and then being careful never to overwrite them,
+++- * this is safer and simpler. */
+++-static void nullz(upb_status *status) {
+++-  const char *ellipsis = "...";
+++-  size_t len = strlen(ellipsis);
+++-  UPB_ASSERT(sizeof(status->msg) > len);
+++-  memcpy(status->msg + sizeof(status->msg) - len, ellipsis, len);
+++-}
+++-
+++ /* upb_status *****************************************************************/
+++ 
+++ void upb_status_clear(upb_status *status) {
+++@@ -37,8 +26,8 @@ const char *upb_status_errmsg(const upb_status *status) { return status->msg; }
+++ void upb_status_seterrmsg(upb_status *status, const char *msg) {
+++   if (!status) return;
+++   status->ok = false;
+++-  strncpy(status->msg, msg, sizeof(status->msg));
+++-  nullz(status);
++++  strncpy(status->msg, msg, UPB_STATUS_MAX_MESSAGE - 1);
++++  status->msg[UPB_STATUS_MAX_MESSAGE - 1] = '\0';
+++ }
+++ 
+++ void upb_status_seterrf(upb_status *status, const char *fmt, ...) {
+++@@ -52,7 +41,7 @@ void upb_status_vseterrf(upb_status *status, const char *fmt, va_list args) {
+++   if (!status) return;
+++   status->ok = false;
+++   _upb_vsnprintf(status->msg, sizeof(status->msg), fmt, args);
+++-  nullz(status);
++++  status->msg[UPB_STATUS_MAX_MESSAGE - 1] = '\0';
+++ }
+++ 
+++ /* upb_alloc ******************************************************************/
+++-- 
+++2.34.1
+++
 +diff --git a/third_party/llvm/macos_build_fix.patch b/third_party/llvm/macos_build_fix.patch
 +index 8ff52f906a6..7f7be7e2bf7 100644
 +--- a/third_party/llvm/macos_build_fix.patch
@@ -318,8 +477,8 @@ index 00000000..e06b04d3
 +     headers = _get_tensorrt_headers(trt_version)
 +     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
-+2.23.0
++2.34.1
 +
 -- 
-2.23.0
+2.34.1
 
