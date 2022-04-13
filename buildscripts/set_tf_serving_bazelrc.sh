@@ -20,6 +20,11 @@ BAZEL_RC_DIR=$1
 #Determine architecture for specific options
 ARCH=`uname -p`
 
+XNNPACK_STATUS=true
+if [[ "${ARCH}" == 'ppc64le' ]]; then
+     XNNPACK_STATUS=false
+fi
+
 ##
 ## Use centralized optimization settings
 ##
@@ -73,6 +78,7 @@ build --action_env TF_SYSTEM_LIBS="org_sqlite"
 build --define=PREFIX="$SYSTEM_LIBS_PREFIX"
 build --define=LIBDIR="$SYSTEM_LIBS_PREFIX/lib"
 build --define=INCLUDEDIR="$SYSTEM_LIBS_PREFIX/include"
+build --define=tflite_with_xnnpack="$XNNPACK_STATUS"
 build --strip=always
 build --color=yes
 build --verbose_failures

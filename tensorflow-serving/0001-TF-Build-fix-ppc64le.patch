@@ -1,24 +1,24 @@
-From f350567dfc0c1fd14d1fedb457a60bece28fce03 Mon Sep 17 00:00:00 2001
+From 8280cee46be0d4d29d260ff5411214b0fd463cb0 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Mon, 7 Mar 2022 15:22:55 +0000
+Date: Mon, 11 Apr 2022 09:12:24 -0400
 Subject: [PATCH] TF build fix on ppc64le
 
 ---
  WORKSPACE                                     |   1 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/tensorflow_patches.patch       | 447 ++++++++++++++++++
- 3 files changed, 448 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 482 ++++++++++++++++++
+ 3 files changed, 483 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 18af812a..92cb4302 100644
+index e4d29bb3..9c3fd738 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -17,6 +17,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "ff0df77ec72676d3260502dd19f34518ecd65bb9ead4f7dfdf8bd11cff8640e3",
-     git_commit = "c256c071bb26e1e13b4666d1b3e229e110bc914a",
+     sha256 = "21d919ad6d96fcc0477c8d4f7b1f7e4295aaec2986e035551ed263c2b1cd52ee",
+     git_commit = "3f878cff5b698b82eea85db2b60d65a2e320850e",
 +    patch = "//third_party/tensorflow:tensorflow_patches.patch",
  )
  
@@ -28,13 +28,13 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..3ed046ae
+index 00000000..b978c7ef
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,447 @@
-+From b96fd4f7c44e0e620f37571be163e969be7b96ad Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,482 @@
++From 44abdfac7b679ade2dc8e7a8006460031706b413 Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Mon, 7 Mar 2022 15:21:54 +0000
++Date: Mon, 11 Apr 2022 09:09:40 -0400
 +Subject: [PATCH] TF build patches for ppc64le
 +
 +---
@@ -42,16 +42,20 @@ index 00000000..3ed046ae
 + .../core/profiler/utils/xplane_utils.cc       |  3 +-
 + tensorflow/python/lib/core/ndarray_tensor.cc  |  2 +-
 + tensorflow/stream_executor/cuda/BUILD         |  2 +-
++ tensorflow/tools/pip_package/setup.py         |  5 +-
 + tensorflow/workspace2.bzl                     | 11 ++++
++ third_party/cpuinfo/cpuinfo.BUILD             |  1 +
 + third_party/gpus/cuda/BUILD.tpl               |  8 +++
 + third_party/gpus/cuda_configure.bzl           | 40 +++++++++++++
 + third_party/grpc/generate_cc_env_fix.patch    | 60 ++++++++++++++++++-
 + third_party/grpc/upb_gcc10.patch              | 54 +++++++++++++++++
-+ third_party/llvm/macos_build_fix.patch        | 25 ++++----
++ third_party/llvm/fix_ppc64le.patch            | 24 ++++++++
++ third_party/llvm/workspace.bzl                |  2 +-
 + third_party/systemlibs/sqlite.BUILD           | 27 ++++++++-
 + third_party/tensorrt/tensorrt_configure.bzl   |  1 +
-+ 12 files changed, 218 insertions(+), 17 deletions(-)
++ 15 files changed, 232 insertions(+), 10 deletions(-)
 + create mode 100644 third_party/grpc/upb_gcc10.patch
++ create mode 100644 third_party/llvm/fix_ppc64le.patch
 +
 +diff --git a/tensorflow/core/platform/default/build_config/BUILD b/tensorflow/core/platform/default/build_config/BUILD
 +index 9746e6e5222..359f756043e 100644
@@ -83,7 +87,7 @@ index 00000000..3ed046ae
 +       FindAll(space.planes(), [&names_set](const XPlane* plane) {
 +         return names_set.contains(plane->name());
 +diff --git a/tensorflow/python/lib/core/ndarray_tensor.cc b/tensorflow/python/lib/core/ndarray_tensor.cc
-+index 06a43792928..9d1ac67ed1b 100644
++index 6db74a943f7..c434ccf2970 100644
 +--- a/tensorflow/python/lib/core/ndarray_tensor.cc
 ++++ b/tensorflow/python/lib/core/ndarray_tensor.cc
 +@@ -16,7 +16,7 @@ limitations under the License.
@@ -108,12 +112,35 @@ index 00000000..3ed046ae
 +     }),
 +     visibility = ["//visibility:public"],
 + )
++diff --git a/tensorflow/tools/pip_package/setup.py b/tensorflow/tools/pip_package/setup.py
++index 58de3ad9c40..ff311cf9ba6 100644
++--- a/tensorflow/tools/pip_package/setup.py
+++++ b/tensorflow/tools/pip_package/setup.py
++@@ -78,7 +78,6 @@ REQUIRED_PACKAGES = [
++     'google_pasta >= 0.1.1',
++     'h5py >= 2.9.0',
++     'keras_preprocessing >= 1.1.1', # 1.1.0 needs tensorflow==1.7
++-    'libclang >= 9.0.1',
++     'numpy >= 1.20',
++     'opt_einsum >= 2.3.2',
++     'protobuf >= 3.9.2',
++@@ -92,8 +91,8 @@ REQUIRED_PACKAGES = [
++     # They are updated during the release process
++     # When updating these, please also update the nightly versions below
++     'tensorboard >= 2.8, < 2.9',
++-    'tf-estimator-nightly == 2.8.0.dev2021122109',
++-    'keras >= 2.8.0rc0, < 2.9',
+++    'tensorflow-estimator >= 2.8.0, < 2.9', 
+++    'keras >= 2.8.0, < 2.9',
++     'tensorflow-io-gcs-filesystem >= 0.23.1',
++ ]
++ 
 +diff --git a/tensorflow/workspace2.bzl b/tensorflow/workspace2.bzl
-+index eaa2863cfaa..cc1f7dcd4da 100644
++index 60deadb1962..d5870e1ee14 100644
 +--- a/tensorflow/workspace2.bzl
 ++++ b/tensorflow/workspace2.bzl
-+@@ -617,6 +617,17 @@ def _tf_repositories():
-+         ],
++@@ -496,6 +496,17 @@ def _tf_repositories():
++         urls = tf_mirror_urls("https://curl.haxx.se/download/curl-7.79.1.tar.gz"),
 +     )
 + 
 ++    tf_http_archive(
@@ -124,12 +151,24 @@ index 00000000..3ed046ae
 ++            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/protocolbuffers/upb/archive/9effcbcb27f0a665f9f345030188c0b291e32482.tar.gz",
 ++            "https://github.com/protocolbuffers/upb/archive/9effcbcb27f0a665f9f345030188c0b291e32482.tar.gz",
 ++        ],
-++        patch_file = "//third_party/grpc:upb_gcc10.patch",
+++        patch_file = ["//third_party/grpc:upb_gcc10.patch"],
 ++    )
 ++
 +     # WARNING: make sure ncteisen@ and vpai@ are cc-ed on any CL to change the below rule
 +     tf_http_archive(
 +         name = "com_github_grpc_grpc",
++diff --git a/third_party/cpuinfo/cpuinfo.BUILD b/third_party/cpuinfo/cpuinfo.BUILD
++index eb2937d20ef..cf178f84510 100644
++--- a/third_party/cpuinfo/cpuinfo.BUILD
+++++ b/third_party/cpuinfo/cpuinfo.BUILD
++@@ -109,6 +109,7 @@ cc_library(
++         ":linux_mips64": COMMON_SRCS + LINUX_SRCS,
++         ":linux_riscv64": COMMON_SRCS + LINUX_SRCS,
++         ":linux_s390x": COMMON_SRCS + LINUX_SRCS,
+++        ":linux_ppc64le": COMMON_SRCS + LINUX_SRCS,
++         ":macos_x86_64": COMMON_SRCS + X86_SRCS + MACH_SRCS + MACH_X86_SRCS,
++         ":macos_arm64": COMMON_SRCS + MACH_SRCS + MACH_ARM_SRCS,
++         ":windows_x86_64": COMMON_SRCS + X86_SRCS + WINDOWS_X86_SRCS,
 +diff --git a/third_party/gpus/cuda/BUILD.tpl b/third_party/gpus/cuda/BUILD.tpl
 +index 8f783e58d66..3590ce32dae 100644
 +--- a/third_party/gpus/cuda/BUILD.tpl
@@ -375,52 +414,48 @@ index 00000000..3ed046ae
 ++-- 
 ++2.34.1
 ++
-+diff --git a/third_party/llvm/macos_build_fix.patch b/third_party/llvm/macos_build_fix.patch
-+index 8ff52f906a6..7f7be7e2bf7 100644
-+--- a/third_party/llvm/macos_build_fix.patch
-++++ b/third_party/llvm/macos_build_fix.patch
-+@@ -1,27 +1,30 @@
-+-From 1ebfdd7ba05aa861df0397caf4c910c4d6a2690f Mon Sep 17 00:00:00 2001
-+-From: Rahul Joshi <jurahul@google.com>
-+-Date: Wed, 29 Sep 2021 11:13:44 -0700
-++From ab552b4cf33a813129190838778b16d05b4c3ab1 Mon Sep 17 00:00:00 2001
++diff --git a/third_party/llvm/fix_ppc64le.patch b/third_party/llvm/fix_ppc64le.patch
++new file mode 100644
++index 00000000000..3ed53b48164
++--- /dev/null
+++++ b/third_party/llvm/fix_ppc64le.patch
++@@ -0,0 +1,24 @@
+++From dffd421dd8a2410598f0053678f4c0bb9714daf9 Mon Sep 17 00:00:00 2001
 ++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-++Date: Tue, 30 Nov 2021 11:19:13 -0500
-+ Subject: [PATCH] Revert "[Bazel] Add support for targeting macOS arm64"
-+ 
-+ This reverts commit 33e1713a00a5291e5de658d0eb0aebdbf1d3aa03.
-++Also adds support for linux_ppc64le.
-+ ---
-+- utils/bazel/llvm-project-overlay/llvm/config.bzl | 3 +--
-+- 1 file changed, 1 insertion(+), 2 deletions(-)
-++ utils/bazel/llvm-project-overlay/llvm/config.bzl | 4 ++--
-++ 1 file changed, 2 insertions(+), 2 deletions(-)
-+ 
-+ diff --git a/utils/bazel/llvm-project-overlay/llvm/config.bzl b/utils/bazel/llvm-project-overlay/llvm/config.bzl
-+-index ff64df694048..55f3077bff74 100644
-++index ff64df694048..8cd5c6fd0b06 100644
-+ --- a/utils/bazel/llvm-project-overlay/llvm/config.bzl
-+ +++ b/utils/bazel/llvm-project-overlay/llvm/config.bzl
-+-@@ -76,8 +76,7 @@ os_defines = select({
-+- # TODO: We should split out host vs. target here.
-++@@ -77,9 +77,9 @@ os_defines = select({
-+  llvm_config_defines = os_defines + select({
-+      "@bazel_tools//src/conditions:windows": native_arch_defines("X86", "x86_64-pc-win32"),
-+--    "@bazel_tools//src/conditions:darwin_arm64": native_arch_defines("AArch64", "arm64-apple-darwin"),
-++     "@bazel_tools//src/conditions:darwin_arm64": native_arch_defines("AArch64", "arm64-apple-darwin"),
-+ -    "@bazel_tools//src/conditions:darwin_x86_64": native_arch_defines("X86", "x86_64-unknown-darwin"),
-+ +    "@bazel_tools//src/conditions:darwin": native_arch_defines("X86", "x86_64-unknown-darwin"),
-+      "@bazel_tools//src/conditions:linux_aarch64": native_arch_defines("AArch64", "aarch64-unknown-linux-gnu"),
-+-     "//conditions:default": native_arch_defines("X86", "x86_64-unknown-linux-gnu"),
-++-    "//conditions:default": native_arch_defines("X86", "x86_64-unknown-linux-gnu"),
-+++    "//conditions:default": native_arch_defines("PowerPC", "powerpc64le-unknown-linux-gnu"),
-+  }) + [
+++Date: Mon, 21 Mar 2022 08:14:31 -0400
+++Subject: [PATCH] Fix build on ppc64le
+++
+++---
+++ utils/bazel/llvm-project-overlay/llvm/config.bzl | 1 +
+++ 1 file changed, 1 insertion(+)
+++
+++diff --git a/utils/bazel/llvm-project-overlay/llvm/config.bzl b/utils/bazel/llvm-project-overlay/llvm/config.bzl
+++index 772714f38941..9ed63e8d44a3 100644
+++--- a/utils/bazel/llvm-project-overlay/llvm/config.bzl
++++++ b/utils/bazel/llvm-project-overlay/llvm/config.bzl
+++@@ -86,6 +86,7 @@ llvm_config_defines = os_defines + select({
+++     "//llvm:macos_arm64": native_arch_defines("AArch64", "arm64-apple-darwin"),
+++     "@bazel_tools//src/conditions:darwin": native_arch_defines("X86", "x86_64-unknown-darwin"),
+++     "@bazel_tools//src/conditions:linux_aarch64": native_arch_defines("AArch64", "aarch64-unknown-linux-gnu"),
++++    "@bazel_tools//src/conditions:linux_ppc64le": native_arch_defines("PowerPC", "powerpc64le-unknown-linux-gnu"),
+++     "//conditions:default": native_arch_defines("X86", "x86_64-unknown-linux-gnu"),
+++ }) + [
 ++     # These shouldn't be needed by the C++11 standard, but are for some
-++     # platforms (e.g. glibc < 2.18. See
-+ -- 
-+-2.33.0.685.g46640cef36-goog
+++-- 
 ++2.23.0
-+ 
+++
++diff --git a/third_party/llvm/workspace.bzl b/third_party/llvm/workspace.bzl
++index 038e0ee5fe5..3e4e4f135c2 100644
++--- a/third_party/llvm/workspace.bzl
+++++ b/third_party/llvm/workspace.bzl
++@@ -16,6 +16,6 @@ def repo(name):
++             "https://github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT),
++         ],
++         build_file = "//third_party/llvm:llvm.BUILD",
++-        patch_file = ["//third_party/llvm:macos_build_fix.patch"],
+++        patch_file = ["//third_party/llvm:macos_build_fix.patch", "//third_party/llvm:fix_ppc64le.patch"],
++         link_files = {"//third_party/llvm:run_lit.sh": "mlir/run_lit.sh"},
++     )
 +diff --git a/third_party/systemlibs/sqlite.BUILD b/third_party/systemlibs/sqlite.BUILD
 +index 88a84a96137..31fc5ed5e88 100644
 +--- a/third_party/systemlibs/sqlite.BUILD
@@ -465,10 +500,10 @@ index 00000000..3ed046ae
 + py_library(
 +     name = "python",
 +diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
-+index db3c65a8766..089d48ef65d 100644
++index 562ff08fbed..f1bfe57f183 100644
 +--- a/third_party/tensorrt/tensorrt_configure.bzl
 ++++ b/third_party/tensorrt/tensorrt_configure.bzl
-+@@ -129,6 +129,7 @@ def _create_local_tensorrt_repository(repository_ctx):
++@@ -146,6 +146,7 @@ def _create_local_tensorrt_repository(repository_ctx):
 +     # Copy the library and header files.
 +     libraries = [lib_name(lib, cpu_value, trt_version) for lib in _TF_TENSORRT_LIBS]
 + 
@@ -477,8 +512,8 @@ index 00000000..3ed046ae
 +     headers = _get_tensorrt_headers(trt_version)
 +     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
-+2.34.1
++2.23.0
 +
 -- 
-2.34.1
+2.23.0
 
