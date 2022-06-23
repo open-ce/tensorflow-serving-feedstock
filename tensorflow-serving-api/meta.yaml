@@ -14,6 +14,8 @@ build:
   number: 2
   string: py_pb{{ protobuf | replace(".*", "")}}_{{ PKG_BUILDNUM }}
   noarch: python
+  script_env:
+    - GCC_11_HOME
 
 requirements:
   build:

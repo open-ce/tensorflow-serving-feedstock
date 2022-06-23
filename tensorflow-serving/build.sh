@@ -22,21 +22,21 @@ SCRIPT_DIR=$RECIPE_DIR/../buildscripts
 # Determine architecture for specific settings
 ARCH=`uname -p`
 
+PATH_VAR="$PATH"
 if [[ $ppc_arch == "p10" ]]
 then
-    if [[ -z "${GCC_10_HOME}" ]];
+    if [[ -z "${GCC_11_HOME}" ]];
     then
-        echo "Please set GCC_10_HOME to the install path of gcc-toolset-10"
+        echo "Please set GCC_11_HOME to the install path of gcc-toolset-11"
         exit 1
     else
-        export PATH=$GCC_10_HOME/bin:$PATH
-        export CC=$GCC_10_HOME/bin/gcc
-        export CXX=$GCC_10_HOME/bin/g++
+        export PATH=$GCC_11_HOME/bin:$PATH
+        export CC=$GCC_11_HOME/bin/gcc
+        export CXX=$GCC_11_HOME/bin/g++
         export BAZEL_LINKLIBS=-l%:libstdc++.a
-        ln -s $GCC $CC
-        ln -s $GXX $CXX
-        ln -s $LD $GCC_10_HOME/bin/ld
     fi
+    GCC_USED=`which gcc`
+    echo "GCC being used is ${GCC_USED}"
 else
     ln -s $GCC $PREFIX/gcc
     ln -s $GXX $PREFIX/g++
@@ -94,5 +94,9 @@ then
     rm $PREFIX/gcc
     rm $PREFIX/g++
 fi
+
 bazel clean --expunge
 bazel shutdown
+
+#Restore PATH variable
+export PATH="$PATH_VAR"
