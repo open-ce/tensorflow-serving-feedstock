@@ -1,24 +1,24 @@
-From 8280cee46be0d4d29d260ff5411214b0fd463cb0 Mon Sep 17 00:00:00 2001
+From fc5e3a3eb50f7d3e7adb946d76755855d91808e2 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Mon, 11 Apr 2022 09:12:24 -0400
-Subject: [PATCH] TF build fix on ppc64le
+Date: Mon, 27 Jun 2022 10:52:42 +0000
+Subject: [PATCH] TF Build fixed on ppc64le
 
 ---
  WORKSPACE                                     |   1 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/tensorflow_patches.patch       | 482 ++++++++++++++++++
- 3 files changed, 483 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 395 ++++++++++++++++++
+ 3 files changed, 396 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index e4d29bb3..9c3fd738 100644
+index 95abe3c3..98bc1640 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -17,6 +17,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "21d919ad6d96fcc0477c8d4f7b1f7e4295aaec2986e035551ed263c2b1cd52ee",
-     git_commit = "3f878cff5b698b82eea85db2b60d65a2e320850e",
+     sha256 = "8abbdb42bdf93fb9d957005ecdf4f5b7f6a7efa2fe251096824956cda4568000",
+     git_commit = "2ea19cbb575d076b4f521d3603211c8316ad5f8f",
 +    patch = "//third_party/tensorflow:tensorflow_patches.patch",
  )
  
@@ -28,33 +28,30 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..b978c7ef
+index 00000000..931de25e
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,482 @@
-+From 44abdfac7b679ade2dc8e7a8006460031706b413 Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,395 @@
++From 13328ba26e7a7b216b8dfbadbb8a00179fd561c3 Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Mon, 11 Apr 2022 09:09:40 -0400
-+Subject: [PATCH] TF build patches for ppc64le
++Date: Mon, 27 Jun 2022 10:51:57 +0000
++Subject: [PATCH] TF Build fixed for ppc64le
 +
 +---
 + .../core/platform/default/build_config/BUILD  |  2 +
 + .../core/profiler/utils/xplane_utils.cc       |  3 +-
 + tensorflow/python/lib/core/ndarray_tensor.cc  |  2 +-
 + tensorflow/stream_executor/cuda/BUILD         |  2 +-
-+ tensorflow/tools/pip_package/setup.py         |  5 +-
-+ tensorflow/workspace2.bzl                     | 11 ++++
++ tensorflow/tools/pip_package/setup.py         |  3 +-
 + third_party/cpuinfo/cpuinfo.BUILD             |  1 +
 + third_party/gpus/cuda/BUILD.tpl               |  8 +++
 + third_party/gpus/cuda_configure.bzl           | 40 +++++++++++++
 + third_party/grpc/generate_cc_env_fix.patch    | 60 ++++++++++++++++++-
-+ third_party/grpc/upb_gcc10.patch              | 54 +++++++++++++++++
 + third_party/llvm/fix_ppc64le.patch            | 24 ++++++++
 + third_party/llvm/workspace.bzl                |  2 +-
 + third_party/systemlibs/sqlite.BUILD           | 27 ++++++++-
 + third_party/tensorrt/tensorrt_configure.bzl   |  1 +
-+ 15 files changed, 232 insertions(+), 10 deletions(-)
-+ create mode 100644 third_party/grpc/upb_gcc10.patch
++ 13 files changed, 166 insertions(+), 9 deletions(-)
 + create mode 100644 third_party/llvm/fix_ppc64le.patch
 +
 +diff --git a/tensorflow/core/platform/default/build_config/BUILD b/tensorflow/core/platform/default/build_config/BUILD
@@ -113,7 +110,7 @@ index 00000000..b978c7ef
 +     visibility = ["//visibility:public"],
 + )
 +diff --git a/tensorflow/tools/pip_package/setup.py b/tensorflow/tools/pip_package/setup.py
-+index 58de3ad9c40..ff311cf9ba6 100644
++index 9f25a343b83..87f974f2a85 100644
 +--- a/tensorflow/tools/pip_package/setup.py
 ++++ b/tensorflow/tools/pip_package/setup.py
 +@@ -78,7 +78,6 @@ REQUIRED_PACKAGES = [
@@ -123,40 +120,16 @@ index 00000000..b978c7ef
 +-    'libclang >= 9.0.1',
 +     'numpy >= 1.20',
 +     'opt_einsum >= 2.3.2',
-+     'protobuf >= 3.9.2',
-+@@ -92,8 +91,8 @@ REQUIRED_PACKAGES = [
-+     # They are updated during the release process
++     # TODO(b/182876485): Protobuf 3.20 results in linker errors on Windows
++@@ -100,7 +99,7 @@ REQUIRED_PACKAGES = [
 +     # When updating these, please also update the nightly versions below
 +     'tensorboard >= 2.8, < 2.9',
-+-    'tf-estimator-nightly == 2.8.0.dev2021122109',
++     'tensorflow-estimator >= 2.8, < 2.9',
 +-    'keras >= 2.8.0rc0, < 2.9',
-++    'tensorflow-estimator >= 2.8.0, < 2.9', 
 ++    'keras >= 2.8.0, < 2.9',
 +     'tensorflow-io-gcs-filesystem >= 0.23.1',
 + ]
 + 
-+diff --git a/tensorflow/workspace2.bzl b/tensorflow/workspace2.bzl
-+index 60deadb1962..d5870e1ee14 100644
-+--- a/tensorflow/workspace2.bzl
-++++ b/tensorflow/workspace2.bzl
-+@@ -496,6 +496,17 @@ def _tf_repositories():
-+         urls = tf_mirror_urls("https://curl.haxx.se/download/curl-7.79.1.tar.gz"),
-+     )
-+ 
-++    tf_http_archive(
-++        name = "upb",
-++        sha256 = "61d0417abd60e65ed589c9deee7c124fe76a4106831f6ad39464e1525cef1454",
-++        strip_prefix = "upb-9effcbcb27f0a665f9f345030188c0b291e32482",
-++        urls = [
-++            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/protocolbuffers/upb/archive/9effcbcb27f0a665f9f345030188c0b291e32482.tar.gz",
-++            "https://github.com/protocolbuffers/upb/archive/9effcbcb27f0a665f9f345030188c0b291e32482.tar.gz",
-++        ],
-++        patch_file = ["//third_party/grpc:upb_gcc10.patch"],
-++    )
-++
-+     # WARNING: make sure ncteisen@ and vpai@ are cc-ed on any CL to change the below rule
-+     tf_http_archive(
-+         name = "com_github_grpc_grpc",
 +diff --git a/third_party/cpuinfo/cpuinfo.BUILD b/third_party/cpuinfo/cpuinfo.BUILD
 +index eb2937d20ef..cf178f84510 100644
 +--- a/third_party/cpuinfo/cpuinfo.BUILD
@@ -354,66 +327,6 @@ index 00000000..b978c7ef
 ++-- 
 ++2.34.1
 ++
-+diff --git a/third_party/grpc/upb_gcc10.patch b/third_party/grpc/upb_gcc10.patch
-+new file mode 100644
-+index 00000000000..7d747c48083
-+--- /dev/null
-++++ b/third_party/grpc/upb_gcc10.patch
-+@@ -0,0 +1,54 @@
-++From 57028552ed072263cd6656e5feed67ff89a55e43 Mon Sep 17 00:00:00 2001
-++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-++Date: Mon, 7 Mar 2022 15:08:33 +0000
-++Subject: [PATCH] Fix for build failure with GCC10
-++
-++---
-++ upb/upb.c | 17 +++--------------
-++ 1 file changed, 3 insertions(+), 14 deletions(-)
-++
-++diff --git a/upb/upb.c b/upb/upb.c
-++index 266ea7d..1410b2d 100644
-++--- a/upb/upb.c
-+++++ b/upb/upb.c
-++@@ -11,17 +11,6 @@
-++ 
-++ #include "upb/port_def.inc"
-++ 
-++-/* Guarantee null-termination and provide ellipsis truncation.
-++- * It may be tempting to "optimize" this by initializing these final
-++- * four bytes up-front and then being careful never to overwrite them,
-++- * this is safer and simpler. */
-++-static void nullz(upb_status *status) {
-++-  const char *ellipsis = "...";
-++-  size_t len = strlen(ellipsis);
-++-  UPB_ASSERT(sizeof(status->msg) > len);
-++-  memcpy(status->msg + sizeof(status->msg) - len, ellipsis, len);
-++-}
-++-
-++ /* upb_status *****************************************************************/
-++ 
-++ void upb_status_clear(upb_status *status) {
-++@@ -37,8 +26,8 @@ const char *upb_status_errmsg(const upb_status *status) { return status->msg; }
-++ void upb_status_seterrmsg(upb_status *status, const char *msg) {
-++   if (!status) return;
-++   status->ok = false;
-++-  strncpy(status->msg, msg, sizeof(status->msg));
-++-  nullz(status);
-+++  strncpy(status->msg, msg, UPB_STATUS_MAX_MESSAGE - 1);
-+++  status->msg[UPB_STATUS_MAX_MESSAGE - 1] = '\0';
-++ }
-++ 
-++ void upb_status_seterrf(upb_status *status, const char *fmt, ...) {
-++@@ -52,7 +41,7 @@ void upb_status_vseterrf(upb_status *status, const char *fmt, va_list args) {
-++   if (!status) return;
-++   status->ok = false;
-++   _upb_vsnprintf(status->msg, sizeof(status->msg), fmt, args);
-++-  nullz(status);
-+++  status->msg[UPB_STATUS_MAX_MESSAGE - 1] = '\0';
-++ }
-++ 
-++ /* upb_alloc ******************************************************************/
-++-- 
-++2.34.1
-++
 +diff --git a/third_party/llvm/fix_ppc64le.patch b/third_party/llvm/fix_ppc64le.patch
 +new file mode 100644
 +index 00000000000..3ed53b48164
@@ -512,8 +425,8 @@ index 00000000..b978c7ef
 +     headers = _get_tensorrt_headers(trt_version)
 +     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
-+2.23.0
++2.34.1
 +
 -- 
-2.23.0
+2.34.1
 
