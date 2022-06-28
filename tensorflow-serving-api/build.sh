@@ -51,5 +51,11 @@ bazel --bazelrc=$SRC_DIR/tensorflow_serving/tensorflow-serving.bazelrc build \
 bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package $SRC_DIR/tensorflow_serving_pkg
 pip install --no-deps  $SRC_DIR/tensorflow_serving_pkg/tensorflow_serving_api-*.whl
 
+if [[ $ppc_arch != "p10" ]]
+then
+    rm $PREFIX/gcc
+    rm $PREFIX/g++
+fi
+
 bazel clean --expunge
 bazel shutdown
