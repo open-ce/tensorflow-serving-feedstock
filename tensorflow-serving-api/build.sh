@@ -60,5 +60,11 @@ pip install --no-deps  $SRC_DIR/tensorflow_serving_pkg/tensorflow_serving_api-*.
 bazel clean --expunge
 bazel shutdown
 
+if [[ $ppc_arch != "p10" ]]
+then
+    rm $PREFIX/gcc
+    rm $PREFIX/g++
+fi
+
 #Restore PATH variable
 export PATH="$PATH_VAR"
