@@ -51,6 +51,10 @@ requirements:
    #- tensorrt {{ tensorrt }}         # [build_type == 'cuda' and py<38]
    - sqlite >=3.33.0, <4.0
 
+test:
+  commands:
+    - tensorflow_model_server --version
+
 about:
   home: https://www.tensorflow.org/tfx/guide/serving
   license: Apache 2.0
