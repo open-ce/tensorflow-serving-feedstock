@@ -1,24 +1,24 @@
-From e6a6033702b9fa34435c463f57e5226c8536a107 Mon Sep 17 00:00:00 2001
+From aef583aece0e12eb7c8ee7bfb0234764f27fdd88 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Mon, 11 Apr 2022 06:07:27 -0400
+Date: Tue, 28 Jun 2022 12:24:42 +0000
 Subject: [PATCH] TF Build fix x86-64
 
 ---
  WORKSPACE                                     |   1 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/TF-Build-fix-x86-64.patch      | 310 ++++++++++++++++++
- 3 files changed, 311 insertions(+)
+ .../tensorflow/TF-Build-fix-x86-64.patch      | 308 ++++++++++++++++++
+ 3 files changed, 309 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/TF-Build-fix-x86-64.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index e4d29bb3..88635f8d 100644
+index 95abe3c3..b5dd3d90 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -17,6 +17,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "21d919ad6d96fcc0477c8d4f7b1f7e4295aaec2986e035551ed263c2b1cd52ee",
-     git_commit = "3f878cff5b698b82eea85db2b60d65a2e320850e",
+     sha256 = "8abbdb42bdf93fb9d957005ecdf4f5b7f6a7efa2fe251096824956cda4568000",
+     git_commit = "2ea19cbb575d076b4f521d3603211c8316ad5f8f",
 +    patch = "//third_party/tensorflow:TF-Build-fix-x86-64.patch",
  )
  
@@ -28,13 +28,13 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/TF-Build-fix-x86-64.patch b/third_party/tensorflow/TF-Build-fix-x86-64.patch
 new file mode 100644
-index 00000000..94de23e6
+index 00000000..5af395dc
 --- /dev/null
 +++ b/third_party/tensorflow/TF-Build-fix-x86-64.patch
-@@ -0,0 +1,310 @@
-+From d58d59dffe4511d056bcf6f720b6943a74c338f7 Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,308 @@
++From 092b73241e6931dc250cee427cd77e1a0e9a8003 Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Mon, 11 Apr 2022 06:06:21 -0400
++Date: Tue, 28 Jun 2022 12:23:56 +0000
 +Subject: [PATCH] TF Build fix x86-64
 +
 +---
@@ -42,7 +42,7 @@ index 00000000..94de23e6
 + tensorflow/python/lib/core/ndarray_tensor.cc  |  2 +-
 + tensorflow/stream_executor/cuda/BUILD         |  2 +-
 + tensorflow/tensorflow.bzl                     |  2 ++
-+ tensorflow/tools/pip_package/setup.py         |  5 ++--
++ tensorflow/tools/pip_package/setup.py         |  3 +-
 + third_party/cpuinfo/cpuinfo.BUILD             |  6 ++++
 + third_party/eigen3/eigen.patch                | 28 +++++++++++++++++++
 + third_party/eigen3/workspace.bzl              |  1 +
@@ -52,7 +52,7 @@ index 00000000..94de23e6
 + third_party/systemlibs/sqlite.BUILD           | 27 +++++++++++++++++-
 + third_party/tensorrt/BUILD.tpl                |  1 +
 + third_party/tensorrt/tensorrt_configure.bzl   |  1 +
-+ 14 files changed, 102 insertions(+), 12 deletions(-)
++ 14 files changed, 101 insertions(+), 11 deletions(-)
 + create mode 100644 third_party/eigen3/eigen.patch
 + create mode 100644 third_party/llvm/fix_ppc64le.patch
 +
@@ -97,7 +97,7 @@ index 00000000..94de23e6
 +     visibility = ["//visibility:public"],
 + )
 +diff --git a/tensorflow/tensorflow.bzl b/tensorflow/tensorflow.bzl
-+index 61490437ba4..8e909a30c7d 100644
++index 2b047b14b7f..6ab14c3c2fd 100644
 +--- a/tensorflow/tensorflow.bzl
 ++++ b/tensorflow/tensorflow.bzl
 +@@ -1149,6 +1149,7 @@ def tf_gen_op_wrappers_cc(
@@ -117,7 +117,7 @@ index 00000000..94de23e6
 +         visibility = [clean_dep("//tensorflow:internal")],
 +         compatible_with = compatible_with,
 +diff --git a/tensorflow/tools/pip_package/setup.py b/tensorflow/tools/pip_package/setup.py
-+index 58de3ad9c40..ff311cf9ba6 100644
++index 9f25a343b83..87f974f2a85 100644
 +--- a/tensorflow/tools/pip_package/setup.py
 ++++ b/tensorflow/tools/pip_package/setup.py
 +@@ -78,7 +78,6 @@ REQUIRED_PACKAGES = [
@@ -127,14 +127,12 @@ index 00000000..94de23e6
 +-    'libclang >= 9.0.1',
 +     'numpy >= 1.20',
 +     'opt_einsum >= 2.3.2',
-+     'protobuf >= 3.9.2',
-+@@ -92,8 +91,8 @@ REQUIRED_PACKAGES = [
-+     # They are updated during the release process
++     # TODO(b/182876485): Protobuf 3.20 results in linker errors on Windows
++@@ -100,7 +99,7 @@ REQUIRED_PACKAGES = [
 +     # When updating these, please also update the nightly versions below
 +     'tensorboard >= 2.8, < 2.9',
-+-    'tf-estimator-nightly == 2.8.0.dev2021122109',
++     'tensorflow-estimator >= 2.8, < 2.9',
 +-    'keras >= 2.8.0rc0, < 2.9',
-++    'tensorflow-estimator >= 2.8.0, < 2.9', 
 ++    'keras >= 2.8.0, < 2.9',
 +     'tensorflow-io-gcs-filesystem >= 0.23.1',
 + ]
@@ -198,7 +196,7 @@ index 00000000..94de23e6
 ++     PacketReturnType rslt = internal::pload<PacketReturnType>(values);
 ++     return rslt;
 +diff --git a/third_party/eigen3/workspace.bzl b/third_party/eigen3/workspace.bzl
-+index 9782907cf5e..f0909a5e342 100644
++index 9782907cf5e..e6a3de58ba1 100644
 +--- a/third_party/eigen3/workspace.bzl
 ++++ b/third_party/eigen3/workspace.bzl
 +@@ -15,6 +15,7 @@ def repo():
@@ -340,8 +338,8 @@ index 00000000..94de23e6
 +     library_dir = config["tensorrt_library_dir"] + "/"
 +     headers = _get_tensorrt_headers(trt_version)
 +-- 
-+2.32.0
++2.34.1
 +
 -- 
-2.32.0
+2.34.1
 
