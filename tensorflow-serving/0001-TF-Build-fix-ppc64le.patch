@@ -1,24 +1,28 @@
-From f350567dfc0c1fd14d1fedb457a60bece28fce03 Mon Sep 17 00:00:00 2001
+From dc491cb009b9ecf29696ae07f845974443a995ae Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Mon, 7 Mar 2022 15:22:55 +0000
-Subject: [PATCH] TF build fix on ppc64le
+Date: Wed, 22 Jun 2022 02:10:28 -0400
+Subject: [PATCH] Build fixed on ppc64le P9
 
 ---
- WORKSPACE                                     |   1 +
+ WORKSPACE                                     |   5 +-
  third_party/tensorflow/BUILD                  |   0
  .../tensorflow/tensorflow_patches.patch       | 447 ++++++++++++++++++
- 3 files changed, 448 insertions(+)
+ 3 files changed, 450 insertions(+), 2 deletions(-)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 18af812a..92cb4302 100644
+index 18af812a..5bba9f55 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
-@@ -17,6 +17,7 @@ tensorflow_http_archive(
+@@ -15,8 +15,9 @@ workspace(name = "tf_serving")
+ load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
+ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "ff0df77ec72676d3260502dd19f34518ecd65bb9ead4f7dfdf8bd11cff8640e3",
-     git_commit = "c256c071bb26e1e13b4666d1b3e229e110bc914a",
+-    sha256 = "ff0df77ec72676d3260502dd19f34518ecd65bb9ead4f7dfdf8bd11cff8640e3",
+-    git_commit = "c256c071bb26e1e13b4666d1b3e229e110bc914a",
++    sha256 = "947aef997003e69eea839f827daf050fa75bf0045382dd9502c263207ece20b9",
++    git_commit = "fa3dcb4eadd639abb116f2b8d3019e51064e45b1",
 +    patch = "//third_party/tensorflow:tensorflow_patches.patch",
  )
  
@@ -480,5 +484,5 @@ index 00000000..3ed046ae
 +2.34.1
 +
 -- 
-2.34.1
+2.23.0
 

@@ -16,6 +16,29 @@
 # *****************************************************************
 set -vex
 
+ARCH=`uname -p`
+
+PATH_VAR="$PATH"
+if [[ $ppc_arch == "p10" ]]
+then
+    if [[ -z "${GCC_11_HOME}" ]];
+    then
+        echo "Please set GCC_11_HOME to the install path of gcc-toolset-11"
+        exit 1
+    else
+        export PATH=$GCC_11_HOME/bin:$PATH
+        export CC=$GCC_11_HOME/bin/gcc
+        export CXX=$GCC_11_HOME/bin/g++
+        export BAZEL_LINKLIBS=-l%:libstdc++.a
+    fi
+    GCC_USED=`which gcc`
+    echo "GCC being used is ${GCC_USED}"
+else
+    ln -s $GCC $PREFIX/gcc
+    ln -s $GXX $PREFIX/g++
+    ln -s $LD $BUILD_PREFIX/bin/ld
+fi
+
 bazel clean --expunge
 bazel shutdown
 
@@ -36,3 +59,12 @@ pip install --no-deps  $SRC_DIR/tensorflow_serving_pkg/tensorflow_serving_api-*.
 
 bazel clean --expunge
 bazel shutdown
+
+if [[ $ppc_arch != "p10" ]]
+then
+    rm $PREFIX/gcc
+    rm $PREFIX/g++
+fi
+
+#Restore PATH variable
+export PATH="$PATH_VAR"
