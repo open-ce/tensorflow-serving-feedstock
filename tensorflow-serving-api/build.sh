@@ -19,22 +19,10 @@ set -vex
 bazel clean --expunge
 bazel shutdown
 
-if [[ $ppc_arch == "p10" ]]
-then
-    if [[ -z "${GCC_11_HOME}" ]];
-    then
-        echo "Please set GCC_11_HOME to the install path of gcc-toolset-11"
-        exit 1
-    else
-        export CC=$GCC_11_HOME/bin/gcc
-        export CXX=$GCC_11_HOME/bin/g++
-        export BAZEL_LINKLIBS=-l%:libstdc++.a
-    fi
-else
-    ln -s $GCC $PREFIX/gcc
-    ln -s $GXX $PREFIX/g++
-    ln -s $LD $BUILD_PREFIX/bin/ld
-fi
+export BAZEL_LINKLIBS=-l%:libstdc++.a
+ln -s $GCC $PREFIX/gcc
+ln -s $GXX $PREFIX/g++
+ln -s $LD $BUILD_PREFIX/bin/ld
 
 SCRIPT_DIR=$RECIPE_DIR/../buildscripts
 # Pick up additional variables defined from the conda build environment
@@ -51,11 +39,9 @@ bazel --bazelrc=$SRC_DIR/tensorflow_serving/tensorflow-serving.bazelrc build \
 bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package $SRC_DIR/tensorflow_serving_pkg
 pip install --no-deps  $SRC_DIR/tensorflow_serving_pkg/tensorflow_serving_api-*.whl
 
-if [[ $ppc_arch != "p10" ]]
-then
-    rm $PREFIX/gcc
-    rm $PREFIX/g++
-fi
+rm $PREFIX/gcc
+rm $PREFIX/g++
+
 
 bazel clean --expunge
 bazel shutdown
