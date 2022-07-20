@@ -15,11 +15,13 @@ build:
   number: 1
   string: py_pb{{ protobuf | replace(".*", "")}}_{{ PKG_BUILDNUM }}
   noarch: python
+  script_env:        #[ppc_arch == 'p10']
+    - GCC_11_HOME    #[ppc_arch == 'p10']
 
 requirements:
   build:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}        #[ppc_arch != 'p10']
+    - {{ compiler('cxx') }}      #[ppc_arch != 'p10']
   host:
    - bazel {{ bazel }}
    - python # noarch package; don't tie to specific python version
