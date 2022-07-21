@@ -9,7 +9,7 @@ source:
    git_rev: {{ version }}
    patches:
      - 0001-Replace-k8-with-ppc-for-Power-builds.patch # [ppc64le]
-     - 0001-TF-patches-for-P10.patch                   # [ppc64le and ppc_arch == 'p10']
+     - 0001-TF-Build-fix-ppc64le.patch                 # [ppc64le and ppc_arch == 'p10']
 
 build:
   number: 1
