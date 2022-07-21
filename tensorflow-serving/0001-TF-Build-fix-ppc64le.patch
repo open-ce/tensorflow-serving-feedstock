@@ -1,7 +1,7 @@
-From bf660f1f2bd58d5d3cc9bc90d345da08a1ee2909 Mon Sep 17 00:00:00 2001
+From 000f031a776172e146f9c4d9f4327bc3ef41be3a Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Thu, 7 Jul 2022 02:16:26 -0400
-Subject: [PATCH] TF Patches for Power
+Date: Thu, 21 Jul 2022 09:47:11 +0000
+Subject: [PATCH] TF Build fix on ppc64le
 
 ---
  WORKSPACE                                     |     1 +
@@ -12,13 +12,13 @@ Subject: [PATCH] TF Patches for Power
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 89927328..d7bfb892 100644
+index bbbb74d6..6127896e 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -17,6 +17,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "5b3cde72888d680e4b6162351d614d6ac2d3ef44032e91b5838a9647ecc387a6",
-     git_commit = "8a20d54a3c1bfa38c03ea99a2ad3c1b0a45dfa95",
+     sha256 = "480406f7264fcc9d0eee659fd793d6771e3f0fb6f69942f2a7b89739374e4a41",
+     git_commit = "d8ce9f9c301d021a69953134185ab728c1c248d3",
 +    patch = "//third_party/tensorflow:tensorflow_patches.patch",
  )
  
@@ -54018,5 +54018,5 @@ index 00000000..ef2ee3c5
 +2.23.0
 +
 -- 
-2.23.0
+2.34.1
 
