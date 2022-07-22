@@ -1,13 +1,13 @@
-From 000f031a776172e146f9c4d9f4327bc3ef41be3a Mon Sep 17 00:00:00 2001
+From 0d53152bd3722a0fabeb762c2c10df06f2d63ebb Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Thu, 21 Jul 2022 09:47:11 +0000
-Subject: [PATCH] TF Build fix on ppc64le
+Date: Fri, 22 Jul 2022 04:43:00 -0400
+Subject: [PATCH] TF Build fixed on ppc64le
 
 ---
  WORKSPACE                                     |     1 +
  third_party/tensorflow/BUILD                  |     0
- .../tensorflow/tensorflow_patches.patch       | 53985 ++++++++++++++++
- 3 files changed, 53986 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 53962 ++++++++++++++++
+ 3 files changed, 53963 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
@@ -28,14 +28,14 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..ef2ee3c5
+index 00000000..22e85682
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,53985 @@
-+From 95f54b75c3116eb0783e15626a71aa4d46e1a889 Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,53962 @@
++From 48777736b6bd040587b6d59aed808f3575dc0d8d Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Thu, 7 Jul 2022 02:15:06 -0400
-+Subject: [PATCH] TF Build fixed on ppc
++Date: Fri, 22 Jul 2022 04:40:45 -0400
++Subject: [PATCH] TF Build fixed on ppc64le
 +
 +---
 + tensorflow/core/kernels/cast_op.h             |     3 -
@@ -54,14 +54,14 @@ index 00000000..ef2ee3c5
 + .../CXX11/src/FixedPoint/PacketMathAVX2.h     |     4 +-
 + third_party/eigen3/workspace.bzl              |     4 +-
 + third_party/gpus/cuda/BUILD.tpl               |     8 +
-+ third_party/gpus/cuda_configure.bzl           |    40 +
++ third_party/gpus/cuda_configure.bzl           |    31 +
 + third_party/grpc/generate_cc_env_fix.patch    |    60 +-
 + third_party/grpc/upb_gcc10.patch              |    54 +
 + third_party/llvm/fix_ppc64le.patch            |    24 +
 + third_party/llvm/workspace.bzl                |     2 +-
 + third_party/systemlibs/sqlite.BUILD           |    27 +-
 + third_party/tensorrt/tensorrt_configure.bzl   |     1 +
-+ 23 files changed, 53375 insertions(+), 53 deletions(-)
++ 23 files changed, 53366 insertions(+), 53 deletions(-)
 + create mode 100644 third_party/boringssl/0001-Added-bazel-build-files.patch
 + create mode 100644 third_party/grpc/upb_gcc10.patch
 + create mode 100644 third_party/llvm/fix_ppc64le.patch
@@ -53631,7 +53631,7 @@ index 00000000..ef2ee3c5
 ++2.23.0
 ++
 +diff --git a/third_party/cpuinfo/cpuinfo.BUILD b/third_party/cpuinfo/cpuinfo.BUILD
-+index eb2937d20ef..cf178f84510 100644
++index e362682b810..050bc7d2936 100644
 +--- a/third_party/cpuinfo/cpuinfo.BUILD
 ++++ b/third_party/cpuinfo/cpuinfo.BUILD
 +@@ -109,6 +109,7 @@ cc_library(
@@ -53699,7 +53699,7 @@ index 00000000..ef2ee3c5
 + )
 + 
 +diff --git a/third_party/gpus/cuda_configure.bzl b/third_party/gpus/cuda_configure.bzl
-+index ed8ba3d5205..1c7bfd6c144 100644
++index ed8ba3d5205..adc07ccf904 100644
 +--- a/third_party/gpus/cuda_configure.bzl
 ++++ b/third_party/gpus/cuda_configure.bzl
 +@@ -51,6 +51,7 @@ load(
@@ -53753,37 +53753,14 @@ index 00000000..ef2ee3c5
 +     return inc_entries
 + 
 + def enable_cuda(repository_ctx):
-+@@ -600,6 +630,14 @@ def _find_libs(repository_ctx, check_cuda_libs_script, cuda_config):
++@@ -600,6 +630,7 @@ def _find_libs(repository_ctx, check_cuda_libs_script, cuda_config):
 +             cuda_config.cusparse_version,
 +             static = False,
 +         ),
-++        "nvrtc": _check_cuda_lib_params(
-++            "nvrtc",
-++            cpu_value,
-++            _get_cuda_extra_target_path(repository_ctx, cuda_config) + "/lib",
-++            cuda_config.cuda_version,
-++            static = False,
-++        ),
 ++
 +     }
 + 
 +     # Verify that the libs actually exist at their locations.
-+@@ -794,6 +832,7 @@ def _create_dummy_repository(repository_ctx):
-+             "%{curand_lib}": lib_name("curand", cpu_value),
-+             "%{cupti_lib}": lib_name("cupti", cpu_value),
-+             "%{cusparse_lib}": lib_name("cusparse", cpu_value),
-++            "%{nvrtc_lib}": lib_name("nvrtc", cpu_value),
-+             "%{cub_actual}": ":cuda_headers",
-+             "%{copy_rules}": """
-+ filegroup(name="cuda-include")
-+@@ -1160,6 +1199,7 @@ def _create_local_cuda_repository(repository_ctx):
-+             "%{curand_lib}": _basename(repository_ctx, cuda_libs["curand"]),
-+             "%{cupti_lib}": _basename(repository_ctx, cuda_libs["cupti"]),
-+             "%{cusparse_lib}": _basename(repository_ctx, cuda_libs["cusparse"]),
-++            "%{nvrtc_lib}": _basename(repository_ctx, cuda_libs["nvrtc"]),
-+             "%{cub_actual}": cub_actual,
-+             "%{copy_rules}": "\n".join(copy_rules),
-+         },
 +diff --git a/third_party/grpc/generate_cc_env_fix.patch b/third_party/grpc/generate_cc_env_fix.patch
 +index 51832fe9628..84093655824 100644
 +--- a/third_party/grpc/generate_cc_env_fix.patch
@@ -54018,5 +53995,5 @@ index 00000000..ef2ee3c5
 +2.23.0
 +
 -- 
-2.34.1
+2.23.0
 
