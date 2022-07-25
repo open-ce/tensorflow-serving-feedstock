@@ -1,4 +1,4 @@
-{% set version = "2.8.2" %}
+{% set version = "2.9.1" %}
 
 package:
    name: tensorflow-serving
@@ -9,8 +9,7 @@ source:
    git_rev: {{ version }}
    patches:
      - 0000-TF-Build-fix-x86-64.patch       # [x86_64]
-     - 0001-TF-Build-fix-ppc64le.patch      # [ppc64le and ppc_arch != 'p10']
-     - 0001-TF-patches-for-P10.patch        # [ppc64le and ppc_arch == 'p10']
+     - 0001-TF-Build-fix-ppc64le.patch      # [ppc64le]
  
 build:
   number: 1
@@ -22,8 +21,8 @@ build:
 
 requirements:
   build:
-   - {{ compiler('c') }}        #[ppc_arch != 'p10']
-   - {{ compiler('cxx') }}      #[ppc_arch != 'p10']
+   - {{ compiler('c') }}      #[ppc_arch != 'p10']
+   - {{ compiler('cxx') }}    #[ppc_arch != 'p10']
    - automake
    - libtool
    - make

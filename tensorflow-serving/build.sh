@@ -90,5 +90,6 @@ then
     rm $PREFIX/gcc
     rm $PREFIX/g++
 fi
+
 bazel clean --expunge
 bazel shutdown

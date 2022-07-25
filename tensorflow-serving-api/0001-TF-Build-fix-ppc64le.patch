@@ -1,24 +1,24 @@
-From e800aadd492cac275ce8ab1e6d2ba20956dd5fda Mon Sep 17 00:00:00 2001
+From 0d53152bd3722a0fabeb762c2c10df06f2d63ebb Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Mon, 27 Jun 2022 07:09:39 +0000
-Subject: [PATCH] TF P10 patches
+Date: Fri, 22 Jul 2022 04:43:00 -0400
+Subject: [PATCH] TF Build fixed on ppc64le
 
 ---
  WORKSPACE                                     |     1 +
  third_party/tensorflow/BUILD                  |     0
- .../tensorflow/tensorflow_patches.patch       | 53472 ++++++++++++++++
- 3 files changed, 53473 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 53962 ++++++++++++++++
+ 3 files changed, 53963 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 95abe3c3..98bc1640 100644
+index bbbb74d6..6127896e 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -17,6 +17,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "8abbdb42bdf93fb9d957005ecdf4f5b7f6a7efa2fe251096824956cda4568000",
-     git_commit = "2ea19cbb575d076b4f521d3603211c8316ad5f8f",
+     sha256 = "480406f7264fcc9d0eee659fd793d6771e3f0fb6f69942f2a7b89739374e4a41",
+     git_commit = "d8ce9f9c301d021a69953134185ab728c1c248d3",
 +    patch = "//third_party/tensorflow:tensorflow_patches.patch",
  )
  
@@ -28,36 +28,404 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..da45415e
+index 00000000..22e85682
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,53472 @@
-+From 52a43f74af6cd350537ebd88d1dcdb6dbb856cae Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,53962 @@
++From 48777736b6bd040587b6d59aed808f3575dc0d8d Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Mon, 27 Jun 2022 07:08:27 +0000
-+Subject: [PATCH] TF patched for P10
++Date: Fri, 22 Jul 2022 04:40:45 -0400
++Subject: [PATCH] TF Build fixed on ppc64le
 +
 +---
++ tensorflow/core/kernels/cast_op.h             |     3 -
++ tensorflow/core/kernels/cwise_ops.h           |    21 -
++ tensorflow/core/kernels/cwise_ops_gradients.h |     5 -
++ tensorflow/core/kernels/eigen_activations.h   |     3 -
++ tensorflow/core/kernels/nextafter_op.h        |     1 -
++ tensorflow/core/kernels/quantization_utils.h  |     1 -
++ .../special_math/special_math_op_misc_impl.h  |     5 -
++ .../core/platform/default/build_config/BUILD  |     2 +
 + .../core/profiler/utils/xplane_utils.cc       |     3 +-
 + tensorflow/python/lib/core/ndarray_tensor.cc  |     2 +-
-+ tensorflow/tools/pip_package/setup.py         |     3 +-
 + tensorflow/workspace2.bzl                     |    18 +-
 + .../0001-Added-bazel-build-files.patch        | 53139 ++++++++++++++++
 + third_party/cpuinfo/cpuinfo.BUILD             |     1 +
++ .../CXX11/src/FixedPoint/PacketMathAVX2.h     |     4 +-
++ third_party/eigen3/workspace.bzl              |     4 +-
++ third_party/gpus/cuda/BUILD.tpl               |     8 +
++ third_party/gpus/cuda_configure.bzl           |    31 +
 + third_party/grpc/generate_cc_env_fix.patch    |    60 +-
 + third_party/grpc/upb_gcc10.patch              |    54 +
 + third_party/llvm/fix_ppc64le.patch            |    24 +
++ third_party/llvm/workspace.bzl                |     2 +-
 + third_party/systemlibs/sqlite.BUILD           |    27 +-
-+ 10 files changed, 53321 insertions(+), 10 deletions(-)
++ third_party/tensorrt/tensorrt_configure.bzl   |     1 +
++ 23 files changed, 53366 insertions(+), 53 deletions(-)
 + create mode 100644 third_party/boringssl/0001-Added-bazel-build-files.patch
 + create mode 100644 third_party/grpc/upb_gcc10.patch
 + create mode 100644 third_party/llvm/fix_ppc64le.patch
 +
++diff --git a/tensorflow/core/kernels/cast_op.h b/tensorflow/core/kernels/cast_op.h
++index cf0f0b44daa..5b9c6431262 100644
++--- a/tensorflow/core/kernels/cast_op.h
+++++ b/tensorflow/core/kernels/cast_op.h
++@@ -201,7 +201,6 @@ typename std::enable_if<sizeof(I) == 4, void>::type EIGEN_DEVICE_FUNC
++ // Set n least significant bits to 0
++ template <typename I, typename O>
++ struct LSBZeroSetter {
++-  EIGEN_EMPTY_STRUCT_CTOR(LSBZeroSetter)
++ 
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const I operator()(const I& a) const {
++     constexpr int bits = MantissaWidth<I>() - MantissaWidth<O>();
++@@ -216,7 +215,6 @@ struct LSBZeroSetter {
++ 
++ template <typename I, typename O>
++ struct LSBZeroSetter<std::complex<I>, std::complex<O>> {
++-  EIGEN_EMPTY_STRUCT_CTOR(LSBZeroSetter)
++ 
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const std::complex<I> operator()(
++       const std::complex<I>& a) const {
++@@ -235,7 +233,6 @@ struct LSBZeroSetter<std::complex<I>, std::complex<O>> {
++ 
++ template <typename I, typename O>
++ struct LSBZeroSetter<std::complex<I>, O> {
++-  EIGEN_EMPTY_STRUCT_CTOR(LSBZeroSetter)
++   // Sets the 16 LSBits of the float to 0
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const std::complex<I> operator()(
++       const std::complex<I>& a) const {
++diff --git a/tensorflow/core/kernels/cwise_ops.h b/tensorflow/core/kernels/cwise_ops.h
++index ecc9937185e..f0c63c098ef 100644
++--- a/tensorflow/core/kernels/cwise_ops.h
+++++ b/tensorflow/core/kernels/cwise_ops.h
++@@ -32,7 +32,6 @@ namespace internal {
++ #if GOOGLE_CUDA
++ template <>
++ struct scalar_arg_op<std::complex<float>> {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_arg_op)
++   typedef typename Eigen::NumTraits<std::complex<float>>::Real result_type;
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE float operator()(
++       const std::complex<float>& a) const {
++@@ -42,7 +41,6 @@ struct scalar_arg_op<std::complex<float>> {
++ 
++ template <>
++ struct scalar_arg_op<std::complex<double>> {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_arg_op)
++   typedef typename Eigen::NumTraits<std::complex<double>>::Real result_type;
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE double operator()(
++       const std::complex<double>& a) const {
++@@ -54,7 +52,6 @@ struct scalar_arg_op<std::complex<double>> {
++ #if EIGEN_HAS_CXX11_MATH == 0
++ template <typename T>
++ struct scalar_asinh_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_asinh_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& a) const {
++     return static_cast<T>(std::asinh(a));
++   }
++@@ -66,7 +63,6 @@ struct functor_traits<scalar_asinh_op<T>> {
++ 
++ template <typename T>
++ struct scalar_acosh_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_acosh_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& a) const {
++     return static_cast<T>(std::acosh(a));
++   }
++@@ -78,7 +74,6 @@ struct functor_traits<scalar_acosh_op<T>> {
++ 
++ template <typename T>
++ struct scalar_atanh_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_atanh_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& a) const {
++     return static_cast<T>(std::atanh(a));
++   }
++@@ -157,7 +152,6 @@ struct functor_traits<safe_div_or_mod_op<T, DivOrMod>> {
++ 
++ template <typename T, typename Binary>
++ struct no_nan_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(no_nan_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& a,
++                                                      const T& b) const {
++     if (b != T(0)) {
++@@ -181,7 +175,6 @@ struct div_no_nan_op;
++ template <typename T>
++ struct div_no_nan_op<T, /*IsComplex=*/false>
++     : public no_nan_op<T, scalar_quotient_op<T>> {
++-  EIGEN_EMPTY_STRUCT_CTOR(div_no_nan_op)
++ };
++ 
++ template <typename T>
++@@ -197,7 +190,6 @@ struct functor_traits<div_no_nan_op<T, /*IsComplex=*/false>> {
++ // by |b|^2, which may underflow to 0 for b != 0.
++ template <typename T>
++ struct div_no_nan_op<T, /*IsComplex=*/true> {
++-  EIGEN_EMPTY_STRUCT_CTOR(div_no_nan_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& a,
++                                                      const T& b) const {
++     if (b == T(0)) {
++@@ -234,7 +226,6 @@ struct functor_traits<div_no_nan_op<T, /*IsComplex=*/true>> {
++ 
++ template <typename T>
++ struct mul_no_nan_op : public no_nan_op<T, scalar_product_op<T>> {
++-  EIGEN_EMPTY_STRUCT_CTOR(mul_no_nan_op)
++ };
++ 
++ template <typename T>
++@@ -671,7 +662,6 @@ struct functor_traits<scalar_round_up_op<Scalar, IsInteger>> {
++ 
++ template <typename Scalar>
++ struct bitwise_xor_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(bitwise_xor_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
++   operator()(const Scalar& x, const Scalar& y) const {
++     return x ^ y;
++@@ -690,7 +680,6 @@ struct functor_traits<bitwise_xor_op<Scalar>> {
++ 
++ template <typename Scalar>
++ struct xlogy_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(xlogy_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
++   operator()(const Scalar& x, const Scalar& y) const {
++     if (x == Scalar(0.)) {
++@@ -721,7 +710,6 @@ struct functor_traits<xlogy_op<Scalar>> {
++ 
++ template <typename Scalar>
++ struct xlog1py_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(xlog1py_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
++   operator()(const Scalar& x, const Scalar& y) const {
++     if (x == Scalar(0.)) {
++@@ -756,7 +744,6 @@ struct functor_traits<xlog1py_op<Scalar>> {
++ 
++ template <typename Scalar>
++ struct xdivy_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(xdivy_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
++   operator()(const Scalar& x, const Scalar& y) const {
++     if (x == Scalar(0.)) {
++@@ -787,7 +774,6 @@ struct functor_traits<xdivy_op<Scalar>> {
++ 
++ template <typename T>
++ struct scalar_erfinv_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_erfinv_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& x) const {
++     constexpr T half = T(0.5);
++     T y = numext::ndtri(half * x + half);
++@@ -989,7 +975,6 @@ struct logical_not : base<bool, Eigen::internal::scalar_boolean_not_op<bool>> {
++ // Flip all bits. Named invert to be consistent with numpy.
++ template <typename T>
++ struct invert_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(invert_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& a) const {
++     return ~a;
++   }
++@@ -1116,7 +1101,6 @@ struct safe_pow : base<T, Eigen::internal::safe_scalar_binary_pow_op<T, T>> {
++ template <typename T>
++ struct safe_pow_ignore_error_op {
++   static_assert(std::is_integral<T>::value, "Integer type expected");
++-  EIGEN_EMPTY_STRUCT_CTOR(safe_pow_ignore_error_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& x,
++                                                      const T& y) const {
++     if (TF_PREDICT_FALSE(y < 0)) {
++@@ -1159,7 +1143,6 @@ struct polygamma : base<T, Eigen::internal::scalar_polygamma_op<T>> {};
++ 
++ template <typename Scalar>
++ struct scalar_atan2_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_atan2_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
++   operator()(const Scalar& y, const Scalar& x) const {
++ #if TENSORFLOW_USE_ROCM
++@@ -1210,7 +1193,6 @@ struct logical_or : base<bool, Eigen::internal::scalar_boolean_or_op> {};
++ 
++ template <typename T>
++ struct bitwise_and_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(bitwise_and_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& x,
++                                                      const T& y) const {
++     return x & y;
++@@ -1219,7 +1201,6 @@ struct bitwise_and_op {
++ 
++ template <typename T>
++ struct bitwise_or_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(bitwise_or_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& x,
++                                                      const T& y) const {
++     return x | y;
++@@ -1237,7 +1218,6 @@ struct bitwise_xor : base<T, Eigen::internal::bitwise_xor_op<T>> {};
++ 
++ template <typename T>
++ struct left_shift_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(left_shift_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& x,
++                                                      const T& y) const {
++     // Avoids UB: don't shift by larger than the bitwidth of T, and
++@@ -1255,7 +1235,6 @@ struct left_shift_op {
++ 
++ template <typename T>
++ struct right_shift_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(right_shift_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& x,
++                                                      const T& y) const {
++     // Avoids UB: don't shift by larger than the bitwidth of T.
++diff --git a/tensorflow/core/kernels/cwise_ops_gradients.h b/tensorflow/core/kernels/cwise_ops_gradients.h
++index 78f77caa6fe..ffad345026b 100644
++--- a/tensorflow/core/kernels/cwise_ops_gradients.h
+++++ b/tensorflow/core/kernels/cwise_ops_gradients.h
++@@ -26,7 +26,6 @@ namespace internal {
++ // Gradient for the tanh function
++ template <typename T>
++ struct scalar_tanh_gradient_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_tanh_gradient_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const T
++   operator()(const T& output, const T& output_gradient) const {
++     return output_gradient * (T(1) - output * output);
++@@ -49,7 +48,6 @@ struct functor_traits<scalar_tanh_gradient_op<T>> {
++ // Gradient for the sigmoid function
++ template <typename T>
++ struct scalar_sigmoid_gradient_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_sigmoid_gradient_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const T
++   operator()(const T& output, const T& output_gradient) const {
++     return output_gradient * output * (T(1) - output);
++@@ -72,7 +70,6 @@ struct functor_traits<scalar_sigmoid_gradient_op<T>> {
++ // Gradient for the inverse function
++ template <typename T>
++ struct scalar_inverse_gradient_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_inverse_gradient_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const T
++   operator()(const T& output, const T& output_gradient) const {
++     if (output_gradient == T(0)) {
++@@ -101,7 +98,6 @@ struct functor_traits<scalar_inverse_gradient_op<T>> {
++ // Gradient for the sqrt function
++ template <typename T>
++ struct scalar_sqrt_gradient_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_sqrt_gradient_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const T
++   operator()(const T& output, const T& output_gradient) const {
++     if (output_gradient == T(0)) {
++@@ -131,7 +127,6 @@ struct functor_traits<scalar_sqrt_gradient_op<T>> {
++ // Gradient for the rsqrt function
++ template <typename T>
++ struct scalar_rsqrt_gradient_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_rsqrt_gradient_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const T
++   operator()(const T& output, const T& output_gradient) const {
++     if (output_gradient == T(0)) {
++diff --git a/tensorflow/core/kernels/eigen_activations.h b/tensorflow/core/kernels/eigen_activations.h
++index 302033e47c5..2d4e4884eee 100644
++--- a/tensorflow/core/kernels/eigen_activations.h
+++++ b/tensorflow/core/kernels/eigen_activations.h
++@@ -30,7 +30,6 @@ namespace Eigen {
++  */
++ template <typename T>
++ struct scalar_sigmoid_fast_derivative_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_sigmoid_fast_derivative_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& y) const {
++     const T one = T(1);
++     return (one - y) * y;
++@@ -64,7 +63,6 @@ struct functor_traits<scalar_sigmoid_fast_derivative_op<T> > {
++  */
++ template <typename T>
++ struct scalar_tanh_fast_derivative_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_tanh_fast_derivative_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& y) const {
++     const T one = T(1);
++     return one - (y * y);
++@@ -96,7 +94,6 @@ struct functor_traits<scalar_tanh_fast_derivative_op<T> > {
++  */
++ template <typename Scalar>
++ struct scalar_clip_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_clip_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar
++   operator()(const Scalar& a, const Scalar& b) const {
++     return numext::mini(numext::maxi(a, -b), b);
++diff --git a/tensorflow/core/kernels/nextafter_op.h b/tensorflow/core/kernels/nextafter_op.h
++index 3bf3ee5185d..7879543cc12 100644
++--- a/tensorflow/core/kernels/nextafter_op.h
+++++ b/tensorflow/core/kernels/nextafter_op.h
++@@ -24,7 +24,6 @@ namespace functor {
++ 
++ template <typename T>
++ struct nextafter_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(nextafter_op)
++   // GPU kernels on ROCm may have issues including standard C++ APIs. Use
++   // specialized member functions and invoke HIP runtime APIs instead.
++ #if !TENSORFLOW_USE_ROCM
++diff --git a/tensorflow/core/kernels/quantization_utils.h b/tensorflow/core/kernels/quantization_utils.h
++index 71c31836d67..5f96473d024 100644
++--- a/tensorflow/core/kernels/quantization_utils.h
+++++ b/tensorflow/core/kernels/quantization_utils.h
++@@ -666,7 +666,6 @@ inline void RequantizeManyInNewRange<quint8, qint32>(
++ 
++ template <int shift>
++ struct int64_right_shift_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(int64_right_shift_op)
++   EIGEN_DEVICE_FUNC
++   EIGEN_STRONG_INLINE const int64_t operator()(const int64_t a) const {
++     return a >> shift;
++diff --git a/tensorflow/core/kernels/special_math/special_math_op_misc_impl.h b/tensorflow/core/kernels/special_math/special_math_op_misc_impl.h
++index c290c47a384..8d39fabb5fb 100644
++--- a/tensorflow/core/kernels/special_math/special_math_op_misc_impl.h
+++++ b/tensorflow/core/kernels/special_math/special_math_op_misc_impl.h
++@@ -124,7 +124,6 @@ generic_dawsn_interval_3(const Scalar& x) {
++ 
++ template <typename Scalar>
++ struct dawsn_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(dawsn_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
++   operator()(const Scalar& x) const {
++     const Scalar half = Scalar(0.5);
++@@ -376,7 +375,6 @@ generic_expint_interval_7(const Scalar& x) {
++ 
++ template <typename Scalar>
++ struct expint_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(expint_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
++   operator()(const Scalar& x) const {
++     const Scalar zero = Scalar(0.0);
++@@ -533,7 +531,6 @@ generic_fresnel_asymp(const Scalar& x, bool use_sin) {
++ 
++ template <typename Scalar>
++ struct fresnel_cos_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(fresnel_cos_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
++   operator()(const Scalar& x) const {
++     const Scalar zero = Scalar(0.);
++@@ -567,7 +564,6 @@ struct fresnel_cos_op {
++ 
++ template <typename Scalar>
++ struct fresnel_sin_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(fresnel_sin_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
++   operator()(const Scalar& x) const {
++     const Scalar zero = Scalar(0.);
++@@ -602,7 +598,6 @@ struct fresnel_sin_op {
++ // Implementation of Spence's Integral based on Cephes.
++ template <typename Scalar>
++ struct spence_op {
++-  EIGEN_EMPTY_STRUCT_CTOR(spence_op)
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
++   operator()(const Scalar& x) const {
++     const Scalar A[] = {
++diff --git a/tensorflow/core/platform/default/build_config/BUILD b/tensorflow/core/platform/default/build_config/BUILD
++index 9746e6e5222..359f756043e 100644
++--- a/tensorflow/core/platform/default/build_config/BUILD
+++++ b/tensorflow/core/platform/default/build_config/BUILD
++@@ -212,8 +212,10 @@ cc_library(
++             "-Wl,-rpath,../local_config_cuda/cuda/extras/CUPTI/lib",
++         ],
++         "//conditions:default": [
+++            "-Lbazel-out/host/bin/external/local_config_cuda/cuda/cuda/lib",
++             "-Wl,-rpath,../local_config_cuda/cuda/lib64",
++             "-Wl,-rpath,../local_config_cuda/cuda/extras/CUPTI/lib64",
+++            "-Wl,-rpath,bazel-out/host/bin/external/local_config_cuda/cuda/cuda/lib",
++         ],
++     }),
++     deps = [
 +diff --git a/tensorflow/core/profiler/utils/xplane_utils.cc b/tensorflow/core/profiler/utils/xplane_utils.cc
-+index 5efcdcda4b0..f012d7f99e2 100644
++index f66546236c1..3c7316bdd90 100644
 +--- a/tensorflow/core/profiler/utils/xplane_utils.cc
 ++++ b/tensorflow/core/profiler/utils/xplane_utils.cc
-+@@ -101,7 +101,8 @@ const XPlane* FindPlaneWithName(const XSpace& space, absl::string_view name) {
++@@ -104,7 +104,8 @@ const XPlane* FindPlaneWithName(const XSpace& space, absl::string_view name) {
 + 
 + std::vector<const XPlane*> FindPlanesWithNames(
 +     const XSpace& space, const std::vector<absl::string_view>& names) {
@@ -80,32 +448,11 @@ index 00000000..da45415e
 + 
 + #include "tensorflow/c/eager/tfe_context_internal.h"
 + #include "tensorflow/c/tf_tensor_internal.h"
-+diff --git a/tensorflow/tools/pip_package/setup.py b/tensorflow/tools/pip_package/setup.py
-+index 9f25a343b83..87f974f2a85 100644
-+--- a/tensorflow/tools/pip_package/setup.py
-++++ b/tensorflow/tools/pip_package/setup.py
-+@@ -78,7 +78,6 @@ REQUIRED_PACKAGES = [
-+     'google_pasta >= 0.1.1',
-+     'h5py >= 2.9.0',
-+     'keras_preprocessing >= 1.1.1', # 1.1.0 needs tensorflow==1.7
-+-    'libclang >= 9.0.1',
-+     'numpy >= 1.20',
-+     'opt_einsum >= 2.3.2',
-+     # TODO(b/182876485): Protobuf 3.20 results in linker errors on Windows
-+@@ -100,7 +99,7 @@ REQUIRED_PACKAGES = [
-+     # When updating these, please also update the nightly versions below
-+     'tensorboard >= 2.8, < 2.9',
-+     'tensorflow-estimator >= 2.8, < 2.9',
-+-    'keras >= 2.8.0rc0, < 2.9',
-++    'keras >= 2.8.0, < 2.9',
-+     'tensorflow-io-gcs-filesystem >= 0.23.1',
-+ ]
-+ 
 +diff --git a/tensorflow/workspace2.bzl b/tensorflow/workspace2.bzl
-+index a8566a3f702..cdcf0b52650 100644
++index 77c76aa6e20..70f617e4e88 100644
 +--- a/tensorflow/workspace2.bzl
 ++++ b/tensorflow/workspace2.bzl
-+@@ -496,6 +496,17 @@ def _tf_repositories():
++@@ -489,6 +489,17 @@ def _tf_repositories():
 +         urls = tf_mirror_urls("https://curl.haxx.se/download/curl-7.83.1.tar.gz"),
 +     )
 + 
@@ -123,7 +470,7 @@ index 00000000..da45415e
 +     # WARNING: make sure ncteisen@ and vpai@ are cc-ed on any CL to change the below rule
 +     tf_http_archive(
 +         name = "com_github_grpc_grpc",
-+@@ -553,10 +564,11 @@ def _tf_repositories():
++@@ -546,10 +557,11 @@ def _tf_repositories():
 + 
 +     tf_http_archive(
 +         name = "boringssl",
@@ -140,7 +487,7 @@ index 00000000..da45415e
 +     # Note: if you update this, you have to update libpng too. See cl/437813808
 +diff --git a/third_party/boringssl/0001-Added-bazel-build-files.patch b/third_party/boringssl/0001-Added-bazel-build-files.patch
 +new file mode 100644
-+index 00000000000..75642eda027
++index 00000000000..fb4d52cd48e
 +--- /dev/null
 ++++ b/third_party/boringssl/0001-Added-bazel-build-files.patch
 +@@ -0,0 +1,53139 @@
@@ -53284,7 +53631,7 @@ index 00000000..da45415e
 ++2.23.0
 ++
 +diff --git a/third_party/cpuinfo/cpuinfo.BUILD b/third_party/cpuinfo/cpuinfo.BUILD
-+index eb2937d20ef..cf178f84510 100644
++index e362682b810..050bc7d2936 100644
 +--- a/third_party/cpuinfo/cpuinfo.BUILD
 ++++ b/third_party/cpuinfo/cpuinfo.BUILD
 +@@ -109,6 +109,7 @@ cc_library(
@@ -53295,6 +53642,125 @@ index 00000000..da45415e
 +         ":macos_x86_64": COMMON_SRCS + X86_SRCS + MACH_SRCS + MACH_X86_SRCS,
 +         ":macos_arm64": COMMON_SRCS + MACH_SRCS + MACH_ARM_SRCS,
 +         ":windows_x86_64": COMMON_SRCS + X86_SRCS + WINDOWS_X86_SRCS,
++diff --git a/third_party/eigen3/unsupported/Eigen/CXX11/src/FixedPoint/PacketMathAVX2.h b/third_party/eigen3/unsupported/Eigen/CXX11/src/FixedPoint/PacketMathAVX2.h
++index 4c5e02abc9d..385aaf8c739 100644
++--- a/third_party/eigen3/unsupported/Eigen/CXX11/src/FixedPoint/PacketMathAVX2.h
+++++ b/third_party/eigen3/unsupported/Eigen/CXX11/src/FixedPoint/PacketMathAVX2.h
++@@ -514,9 +514,7 @@ EIGEN_STRONG_INLINE QInt8 predux_max<Packet32q8i>(const Packet32q8i& a) {
++ template <>
++ struct scalar_product_op<QInt32, double> : binary_op_base<QInt32, double> {
++   typedef typename ScalarBinaryOpTraits<QInt32, double>::ReturnType result_type;
++-#ifndef EIGEN_SCALAR_BINARY_OP_PLUGIN
++-  EIGEN_EMPTY_STRUCT_CTOR(scalar_product_op)
++-#else
+++#ifdef EIGEN_SCALAR_BINARY_OP_PLUGIN
++   scalar_product_op() { EIGEN_SCALAR_BINARY_OP_PLUGIN }
++ #endif
++   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE result_type
++diff --git a/third_party/eigen3/workspace.bzl b/third_party/eigen3/workspace.bzl
++index 4d327eedb37..97b0a85a4e2 100644
++--- a/third_party/eigen3/workspace.bzl
+++++ b/third_party/eigen3/workspace.bzl
++@@ -7,8 +7,8 @@ def repo():
++ 
++     # Attention: tools parse and update these lines.
++     # LINT.IfChange
++-    EIGEN_COMMIT = "008ff3483a8c5604639e1c4d204eae30ad737af6"
++-    EIGEN_SHA256 = "e1dd31ce174c3d26fbe38388f64b09d2adbd7557a59e90e6f545a288cc1755fc"
+++    EIGEN_COMMIT = "c2f15edc43367c3a11aacbb51c7431ccb5a31bb5"
+++    EIGEN_SHA256 = "052754f4575ec9ae30e00e182eae22a2ec756768f07109b67428dc0c06feaecc"
++     # LINT.ThenChange(//tensorflow/lite/tools/cmake/modules/eigen.cmake)
++ 
++     tf_http_archive(
++diff --git a/third_party/gpus/cuda/BUILD.tpl b/third_party/gpus/cuda/BUILD.tpl
++index 8f783e58d66..3590ce32dae 100644
++--- a/third_party/gpus/cuda/BUILD.tpl
+++++ b/third_party/gpus/cuda/BUILD.tpl
++@@ -75,6 +75,13 @@ cc_library(
++     srcs = ["cuda/lib/%{cuda_driver_lib}"],
++ )
++ 
+++cc_library(
+++    name = "nvrtc",
+++    srcs = ["cuda/lib/%{nvrtc_lib}"],
+++    data = ["cuda/lib/%{nvrtc_lib}"],
+++    linkstatic = 1,
+++)
+++
++ cc_library(
++     name = "cudart",
++     srcs = ["cuda/lib/%{cudart_lib}"],
++@@ -188,6 +195,7 @@ cc_library(
++         ":cudnn",
++         ":cufft",
++         ":curand",
+++        ":nvrtc",
++     ],
++ )
++ 
++diff --git a/third_party/gpus/cuda_configure.bzl b/third_party/gpus/cuda_configure.bzl
++index ed8ba3d5205..adc07ccf904 100644
++--- a/third_party/gpus/cuda_configure.bzl
+++++ b/third_party/gpus/cuda_configure.bzl
++@@ -51,6 +51,7 @@ load(
++     "read_dir",
++     "realpath",
++     "which",
+++    "files_exist",
++ )
++ 
++ _GCC_HOST_COMPILER_PATH = "GCC_HOST_COMPILER_PATH"
++@@ -330,6 +331,30 @@ def auto_configure_fail(msg):
++ 
++ # END cc_configure common functions (see TODO above).
++ 
+++# TODO: Below code isn't tested with platforms other than linux ppc64le and x86_64
+++def _get_cuda_extra_target_path(repository_ctx, cuda_config): 
+++    cuda_extra_path = ""
+++    if cuda_config.cpu_value == "Linux":
+++        os_name = "linux"
+++
+++    cpu = "x86_64"
+++    machine_type = repository_ctx.execute(["bash", "-c", "uname -p"]).stdout
+++    if (machine_type.startswith("ppc") or
+++        machine_type.startswith("powerpc")):
+++        cpu = "ppc64le"
+++    elif machine_type.startswith("s390x"):
+++        cpu = "s390x"
+++    elif machine_type.startswith("aarch64"):
+++        cpu = "aarch64"
+++    elif machine_type.startswith("arm"):
+++        cpu = "arm"
+++
+++    extra_path = cuda_config.cuda_toolkit_path + "/targets/" + cpu + "-" + os_name
+++    if files_exist(repository_ctx, [extra_path]) == [True]:
+++        cuda_extra_path = realpath(repository_ctx, extra_path)
+++
+++    return cuda_extra_path
+++
++ def _cuda_include_path(repository_ctx, cuda_config):
++     """Generates the Starlark string with cuda include directories.
++ 
++@@ -362,6 +387,11 @@ def _cuda_include_path(repository_ctx, cuda_config):
++     if target_dir != "":
++         inc_entries.append(realpath(repository_ctx, target_dir))
++     inc_entries.append(realpath(repository_ctx, cuda_config.cuda_toolkit_path + "/include"))
+++
+++    extra_cuda_path = _get_cuda_extra_target_path(repository_ctx, cuda_config)
+++    extra_cuda_include_path = realpath(repository_ctx, extra_cuda_path + "/include")
+++    if extra_cuda_include_path != "":
+++        inc_entries.append(extra_cuda_include_path)
++     return inc_entries
++ 
++ def enable_cuda(repository_ctx):
++@@ -600,6 +630,7 @@ def _find_libs(repository_ctx, check_cuda_libs_script, cuda_config):
++             cuda_config.cusparse_version,
++             static = False,
++         ),
+++
++     }
++ 
++     # Verify that the libs actually exist at their locations.
 +diff --git a/third_party/grpc/generate_cc_env_fix.patch b/third_party/grpc/generate_cc_env_fix.patch
 +index 51832fe9628..84093655824 100644
 +--- a/third_party/grpc/generate_cc_env_fix.patch
@@ -53458,6 +53924,18 @@ index 00000000..da45415e
 ++-- 
 ++2.23.0
 ++
++diff --git a/third_party/llvm/workspace.bzl b/third_party/llvm/workspace.bzl
++index 82d0f71ccbd..e619c12ad17 100644
++--- a/third_party/llvm/workspace.bzl
+++++ b/third_party/llvm/workspace.bzl
++@@ -16,6 +16,6 @@ def repo(name):
++             "https://github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT),
++         ],
++         build_file = "//third_party/llvm:llvm.BUILD",
++-        patch_file = ["//third_party/llvm:macos_build_fix.patch"],
+++        patch_file = ["//third_party/llvm:macos_build_fix.patch", "//third_party/llvm:fix_ppc64le.patch"],
++         link_files = {"//third_party/llvm:run_lit.sh": "mlir/run_lit.sh"},
++     )
 +diff --git a/third_party/systemlibs/sqlite.BUILD b/third_party/systemlibs/sqlite.BUILD
 +index 88a84a96137..31fc5ed5e88 100644
 +--- a/third_party/systemlibs/sqlite.BUILD
@@ -53501,9 +53979,21 @@ index 00000000..da45415e
 + # This is a Copybara sync helper for Google.
 + py_library(
 +     name = "python",
++diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
++index 562ff08fbed..f1bfe57f183 100644
++--- a/third_party/tensorrt/tensorrt_configure.bzl
+++++ b/third_party/tensorrt/tensorrt_configure.bzl
++@@ -146,6 +146,7 @@ def _create_local_tensorrt_repository(repository_ctx):
++     # Copy the library and header files.
++     libraries = [lib_name(lib, cpu_value, trt_version) for lib in _TF_TENSORRT_LIBS]
++ 
+++    libraries.append("libmyelin.so.1")
++     library_dir = config["tensorrt_library_dir"] + "/"
++     headers = _get_tensorrt_headers(trt_version)
++     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
-+2.34.1
++2.23.0
 +
 -- 
-2.34.1
+2.23.0
 
