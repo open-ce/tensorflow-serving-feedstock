@@ -1,7 +1,7 @@
-From 6239382a419f3296c2157643bd0396a781f93f95 Mon Sep 17 00:00:00 2001
+From 061b895468e77d4360848fa954053c0d0a4de8d5 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Thu, 21 Jul 2022 09:55:59 +0000
-Subject: [PATCH] TF Build fix on x86
+Date: Wed, 21 Sep 2022 06:31:34 -0500
+Subject: [PATCH] TF Serving fixed on x86
 
 ---
  WORKSPACE                                     |     1 +
@@ -12,13 +12,13 @@ Subject: [PATCH] TF Build fix on x86
  create mode 100644 third_party/tensorflow/TF-Build-fix-x86-64.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index bbbb74d6..0c26ed2e 100644
+index 533a73b7..20777b7d 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -17,6 +17,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "480406f7264fcc9d0eee659fd793d6771e3f0fb6f69942f2a7b89739374e4a41",
-     git_commit = "d8ce9f9c301d021a69953134185ab728c1c248d3",
+     sha256 = "cd6db9301e3537ced2ea3b2c2ef7671e1134e4dd5ed2617b79ff1ddc864c1d62",
+     git_commit = "18960c44ad3f5219c22dca55f842912dbce78a07",
 +    patch = "//third_party/tensorflow:TF-Build-fix-x86-64.patch",
  )
  
@@ -28,14 +28,14 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/TF-Build-fix-x86-64.patch b/third_party/tensorflow/TF-Build-fix-x86-64.patch
 new file mode 100644
-index 00000000..ca1c2d51
+index 00000000..7ff9595a
 --- /dev/null
 +++ b/third_party/tensorflow/TF-Build-fix-x86-64.patch
 @@ -0,0 +1,53519 @@
-+From 50741947b3b124439b8315d42fececcf6c7031aa Mon Sep 17 00:00:00 2001
++From ad0b57aea8f5969f3126f0fd761f54d732934641 Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Fri, 8 Jul 2022 16:42:48 +0000
-+Subject: [PATCH] TF Build fixed on x86
++Date: Wed, 21 Sep 2022 06:30:47 -0500
++Subject: [PATCH] TF build fixed on x86
 +
 +---
 + .../core/profiler/utils/xplane_utils.cc       |     3 +-
@@ -87,7 +87,7 @@ index 00000000..ca1c2d51
 + #include "tensorflow/c/eager/tfe_context_internal.h"
 + #include "tensorflow/c/tf_tensor_internal.h"
 +diff --git a/tensorflow/tensorflow.bzl b/tensorflow/tensorflow.bzl
-+index 143bc0294da..98021b2d8c7 100644
++index 68db11425f3..df72bb1ce83 100644
 +--- a/tensorflow/tensorflow.bzl
 ++++ b/tensorflow/tensorflow.bzl
 +@@ -1149,6 +1149,7 @@ def tf_gen_op_wrappers_cc(
@@ -107,11 +107,11 @@ index 00000000..ca1c2d51
 +         visibility = [clean_dep("//tensorflow:internal")],
 +         compatible_with = compatible_with,
 +diff --git a/tensorflow/workspace2.bzl b/tensorflow/workspace2.bzl
-+index 77c76aa6e20..70f617e4e88 100644
++index c9d2c75ab17..4804d4a3c01 100644
 +--- a/tensorflow/workspace2.bzl
 ++++ b/tensorflow/workspace2.bzl
 +@@ -489,6 +489,17 @@ def _tf_repositories():
-+         urls = tf_mirror_urls("https://curl.haxx.se/download/curl-7.83.1.tar.gz"),
++         urls = tf_mirror_urls("https://curl.haxx.se/download/curl-7.84.0.tar.gz"),
 +     )
 + 
 ++    tf_http_archive(
@@ -53289,7 +53289,7 @@ index 00000000..ca1c2d51
 ++2.23.0
 ++
 +diff --git a/third_party/cpuinfo/cpuinfo.BUILD b/third_party/cpuinfo/cpuinfo.BUILD
-+index eb2937d20ef..dfea408db94 100644
++index e362682b810..bcb3df89fc5 100644
 +--- a/third_party/cpuinfo/cpuinfo.BUILD
 ++++ b/third_party/cpuinfo/cpuinfo.BUILD
 +@@ -109,6 +109,7 @@ cc_library(
@@ -53300,7 +53300,7 @@ index 00000000..ca1c2d51
 +         ":macos_x86_64": COMMON_SRCS + X86_SRCS + MACH_SRCS + MACH_X86_SRCS,
 +         ":macos_arm64": COMMON_SRCS + MACH_SRCS + MACH_ARM_SRCS,
 +         ":windows_x86_64": COMMON_SRCS + X86_SRCS + WINDOWS_X86_SRCS,
-+@@ -232,6 +233,11 @@ config_setting(
++@@ -233,6 +234,11 @@ config_setting(
 +     values = {"cpu": "s390x"},
 + )
 + 
@@ -53549,8 +53549,8 @@ index 00000000..ca1c2d51
 +     library_dir = config["tensorrt_library_dir"] + "/"
 +     headers = _get_tensorrt_headers(trt_version)
 +-- 
-+2.34.1
++2.23.0
 +
 -- 
-2.34.1
+2.23.0
 
