@@ -1,7 +1,7 @@
-From 0d53152bd3722a0fabeb762c2c10df06f2d63ebb Mon Sep 17 00:00:00 2001
+From 40eb716424c2b7d3b4d461c7325b2682f982485e Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Fri, 22 Jul 2022 04:43:00 -0400
-Subject: [PATCH] TF Build fixed on ppc64le
+Date: Wed, 21 Sep 2022 03:45:43 -0500
+Subject: [PATCH] TF Serving fixed on ppc64le
 
 ---
  WORKSPACE                                     |     1 +
@@ -12,13 +12,13 @@ Subject: [PATCH] TF Build fixed on ppc64le
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index bbbb74d6..6127896e 100644
+index 533a73b7..3420e273 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -17,6 +17,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "480406f7264fcc9d0eee659fd793d6771e3f0fb6f69942f2a7b89739374e4a41",
-     git_commit = "d8ce9f9c301d021a69953134185ab728c1c248d3",
+     sha256 = "cd6db9301e3537ced2ea3b2c2ef7671e1134e4dd5ed2617b79ff1ddc864c1d62",
+     git_commit = "18960c44ad3f5219c22dca55f842912dbce78a07",
 +    patch = "//third_party/tensorflow:tensorflow_patches.patch",
  )
  
@@ -28,14 +28,14 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..22e85682
+index 00000000..15ed12c1
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
 @@ -0,0 +1,53962 @@
-+From 48777736b6bd040587b6d59aed808f3575dc0d8d Mon Sep 17 00:00:00 2001
++From 6be64a1b244d1113b46016b8ff74484725efdb3f Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Fri, 22 Jul 2022 04:40:45 -0400
-+Subject: [PATCH] TF Build fixed on ppc64le
++Date: Wed, 21 Sep 2022 03:45:02 -0500
++Subject: [PATCH] TF fixed on ppc64le
 +
 +---
 + tensorflow/core/kernels/cast_op.h             |     3 -
@@ -449,11 +449,11 @@ index 00000000..22e85682
 + #include "tensorflow/c/eager/tfe_context_internal.h"
 + #include "tensorflow/c/tf_tensor_internal.h"
 +diff --git a/tensorflow/workspace2.bzl b/tensorflow/workspace2.bzl
-+index 77c76aa6e20..70f617e4e88 100644
++index c9d2c75ab17..4804d4a3c01 100644
 +--- a/tensorflow/workspace2.bzl
 ++++ b/tensorflow/workspace2.bzl
 +@@ -489,6 +489,17 @@ def _tf_repositories():
-+         urls = tf_mirror_urls("https://curl.haxx.se/download/curl-7.83.1.tar.gz"),
++         urls = tf_mirror_urls("https://curl.haxx.se/download/curl-7.84.0.tar.gz"),
 +     )
 + 
 ++    tf_http_archive(
