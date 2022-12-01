@@ -1,24 +1,24 @@
-From 40eb716424c2b7d3b4d461c7325b2682f982485e Mon Sep 17 00:00:00 2001
+From 815a05d8c056d7d96375ea60cbd2da627493ff54 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Wed, 21 Sep 2022 03:45:43 -0500
-Subject: [PATCH] TF Serving fixed on ppc64le
+Date: Wed, 23 Nov 2022 00:39:13 -0500
+Subject: [PATCH] TF Serving build fixed on ppc64le
 
 ---
  WORKSPACE                                     |     1 +
  third_party/tensorflow/BUILD                  |     0
- .../tensorflow/tensorflow_patches.patch       | 53962 ++++++++++++++++
- 3 files changed, 53963 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 53917 ++++++++++++++++
+ 3 files changed, 53918 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 533a73b7..3420e273 100644
+index eb7d4a9f..f281a42f 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -17,6 +17,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "cd6db9301e3537ced2ea3b2c2ef7671e1134e4dd5ed2617b79ff1ddc864c1d62",
-     git_commit = "18960c44ad3f5219c22dca55f842912dbce78a07",
+     sha256 = "094320c39b502bcaa3412744517e21e3cd80f55db1371e6692dfe23eeb3cef04",
+     git_commit = "fdfc646704c37bdf450525f6ced9d80df86e4993",
 +    patch = "//third_party/tensorflow:tensorflow_patches.patch",
  )
  
@@ -28,384 +28,105 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..15ed12c1
+index 00000000..e09efb7b
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,53962 @@
-+From 6be64a1b244d1113b46016b8ff74484725efdb3f Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,53917 @@
++From 654c65c58f29dcca18786fac5d51688347cce115 Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Wed, 21 Sep 2022 03:45:02 -0500
++Date: Tue, 22 Nov 2022 10:58:55 +0000
 +Subject: [PATCH] TF fixed on ppc64le
 +
 +---
-+ tensorflow/core/kernels/cast_op.h             |     3 -
-+ tensorflow/core/kernels/cwise_ops.h           |    21 -
-+ tensorflow/core/kernels/cwise_ops_gradients.h |     5 -
-+ tensorflow/core/kernels/eigen_activations.h   |     3 -
-+ tensorflow/core/kernels/nextafter_op.h        |     1 -
-+ tensorflow/core/kernels/quantization_utils.h  |     1 -
-+ .../special_math/special_math_op_misc_impl.h  |     5 -
++ tensorflow/compiler/xla/service/gpu/BUILD     |    10 +-
++ tensorflow/core/kernels/BUILD                 |     5 +-
 + .../core/platform/default/build_config/BUILD  |     2 +
 + .../core/profiler/utils/xplane_utils.cc       |     3 +-
 + tensorflow/python/lib/core/ndarray_tensor.cc  |     2 +-
++ tensorflow/stream_executor/cuda/BUILD         |    38 +-
++ .../stream_executor/cuda/cublas_11_0.inc      |   173 +-
++ tensorflow/tensorflow.bzl                     |     2 +
 + tensorflow/workspace2.bzl                     |    18 +-
-+ .../0001-Added-bazel-build-files.patch        | 53139 ++++++++++++++++
-+ third_party/cpuinfo/cpuinfo.BUILD             |     1 +
-+ .../CXX11/src/FixedPoint/PacketMathAVX2.h     |     4 +-
-+ third_party/eigen3/workspace.bzl              |     4 +-
++ .../0001-Added-bazel-build-files.patch        | 53140 ++++++++++++++++
 + third_party/gpus/cuda/BUILD.tpl               |     8 +
-+ third_party/gpus/cuda_configure.bzl           |    31 +
++ third_party/gpus/cuda_configure.bzl           |    41 +-
 + third_party/grpc/generate_cc_env_fix.patch    |    60 +-
 + third_party/grpc/upb_gcc10.patch              |    54 +
-+ third_party/llvm/fix_ppc64le.patch            |    24 +
-+ third_party/llvm/workspace.bzl                |     2 +-
 + third_party/systemlibs/sqlite.BUILD           |    27 +-
-+ third_party/tensorrt/tensorrt_configure.bzl   |     1 +
-+ 23 files changed, 53366 insertions(+), 53 deletions(-)
++ third_party/tensorrt/BUILD.tpl                |     1 +
++ third_party/tensorrt/tensorrt_configure.bzl   |     2 +
++ 17 files changed, 53559 insertions(+), 27 deletions(-)
 + create mode 100644 third_party/boringssl/0001-Added-bazel-build-files.patch
 + create mode 100644 third_party/grpc/upb_gcc10.patch
-+ create mode 100644 third_party/llvm/fix_ppc64le.patch
 +
-+diff --git a/tensorflow/core/kernels/cast_op.h b/tensorflow/core/kernels/cast_op.h
-+index cf0f0b44daa..5b9c6431262 100644
-+--- a/tensorflow/core/kernels/cast_op.h
-++++ b/tensorflow/core/kernels/cast_op.h
-+@@ -201,7 +201,6 @@ typename std::enable_if<sizeof(I) == 4, void>::type EIGEN_DEVICE_FUNC
-+ // Set n least significant bits to 0
-+ template <typename I, typename O>
-+ struct LSBZeroSetter {
-+-  EIGEN_EMPTY_STRUCT_CTOR(LSBZeroSetter)
++diff --git a/tensorflow/compiler/xla/service/gpu/BUILD b/tensorflow/compiler/xla/service/gpu/BUILD
++index 29b24cc9562..2fd0dfb042b 100644
++--- a/tensorflow/compiler/xla/service/gpu/BUILD
+++++ b/tensorflow/compiler/xla/service/gpu/BUILD
++@@ -810,8 +810,8 @@ cc_library(
++         ":precompiled_kernels",
++         ":triangular_solve_thunk",
++     ]) + if_cuda_is_configured([
++-        "//tensorflow/stream_executor/cuda:cublas_plugin",
++         "//tensorflow/stream_executor/cuda:cuda_stream",
+++        "//tensorflow/core/platform/default/build_config:cublas_plugin",
++         "//tensorflow/core/platform/default/build_config:cudnn_plugin",
++         "//tensorflow/core/platform/default/build_config:cufft_plugin",
++         "//tensorflow/core/platform/default/build_config:stream_executor_cuda",  # build_cleaner: keep
++@@ -1057,9 +1057,10 @@ cc_library(
++         "//tensorflow/compiler/xla/service:buffer_assignment",
++         "//tensorflow/compiler/xla:status",
++         "//tensorflow/core:tflite_portable_logging",
++-        "//tensorflow/stream_executor/cuda:cublas_plugin",
+++        "//tensorflow/core/platform/default/build_config:cublas_plugin",
++         "//tensorflow/stream_executor:device_memory",
++         "//tensorflow/stream_executor:stream_header",
+++        "//tensorflow/stream_executor/cuda:cublas_lt_header",
++     ]),
++ )
 + 
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const I operator()(const I& a) const {
-+     constexpr int bits = MantissaWidth<I>() - MantissaWidth<O>();
-+@@ -216,7 +215,6 @@ struct LSBZeroSetter {
++@@ -1085,7 +1086,7 @@ cc_library(
++         "//tensorflow/core/protobuf:autotuning_proto_cc",
++         "//tensorflow/core/util/proto:proto_utils",
++         "//tensorflow/stream_executor:blas",
++-        "//tensorflow/stream_executor/cuda:cublas_plugin",
+++        "//tensorflow/core/platform/default/build_config:cublas_plugin",
++         "//tensorflow/stream_executor:device_memory",
++         "//tensorflow/stream_executor:device_memory_allocator",
++         "//tensorflow/stream_executor/gpu:redzone_allocator",
++@@ -1114,7 +1115,8 @@ cc_library(
++         "//tensorflow/core/platform:statusor",
++         "//tensorflow/stream_executor:stream_header",
++     ] + if_cuda_is_configured([
++-        "//tensorflow/stream_executor/cuda:cublas_plugin",
+++        "//tensorflow/stream_executor/cuda:cublas_lt_header",
+++        "//tensorflow/core/platform/default/build_config:cublas_plugin",
++         "//tensorflow/stream_executor:host_or_device_scalar",
++         "//tensorflow/stream_executor:scratch_allocator",
++     ]),
++diff --git a/tensorflow/core/kernels/BUILD b/tensorflow/core/kernels/BUILD
++index b2865e4cb74..8f22ec29d13 100644
++--- a/tensorflow/core/kernels/BUILD
+++++ b/tensorflow/core/kernels/BUILD
++@@ -3620,7 +3620,7 @@ tf_kernel_library(
++         "//conditions:default": [],
++     }) + mkl_deps() + if_cuda([
++         ":matmul_util",
++-        "//tensorflow/stream_executor/cuda:cublas_plugin",
+++        "//tensorflow/core/platform/default/build_config:cublas_plugin",
++     ]) + if_cuda_or_rocm([
++         ":gpu_utils",
++     ]),
++@@ -3637,7 +3637,8 @@ cc_library(
++         "//tensorflow/core:lib",
++         "//tensorflow/core/platform:tensor_float_32_hdr_lib",
++         "//tensorflow/core/util:env_var",
++-        "//tensorflow/stream_executor/cuda:cublas_plugin",
+++        "//tensorflow/stream_executor/cuda:cublas_lt_header",
+++        "//tensorflow/core/platform/default/build_config:cublas_plugin",
++     ]) + if_static(["//tensorflow/core/platform:tensor_float_32_utils"]),
++ )
 + 
-+ template <typename I, typename O>
-+ struct LSBZeroSetter<std::complex<I>, std::complex<O>> {
-+-  EIGEN_EMPTY_STRUCT_CTOR(LSBZeroSetter)
-+ 
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const std::complex<I> operator()(
-+       const std::complex<I>& a) const {
-+@@ -235,7 +233,6 @@ struct LSBZeroSetter<std::complex<I>, std::complex<O>> {
-+ 
-+ template <typename I, typename O>
-+ struct LSBZeroSetter<std::complex<I>, O> {
-+-  EIGEN_EMPTY_STRUCT_CTOR(LSBZeroSetter)
-+   // Sets the 16 LSBits of the float to 0
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const std::complex<I> operator()(
-+       const std::complex<I>& a) const {
-+diff --git a/tensorflow/core/kernels/cwise_ops.h b/tensorflow/core/kernels/cwise_ops.h
-+index ecc9937185e..f0c63c098ef 100644
-+--- a/tensorflow/core/kernels/cwise_ops.h
-++++ b/tensorflow/core/kernels/cwise_ops.h
-+@@ -32,7 +32,6 @@ namespace internal {
-+ #if GOOGLE_CUDA
-+ template <>
-+ struct scalar_arg_op<std::complex<float>> {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_arg_op)
-+   typedef typename Eigen::NumTraits<std::complex<float>>::Real result_type;
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE float operator()(
-+       const std::complex<float>& a) const {
-+@@ -42,7 +41,6 @@ struct scalar_arg_op<std::complex<float>> {
-+ 
-+ template <>
-+ struct scalar_arg_op<std::complex<double>> {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_arg_op)
-+   typedef typename Eigen::NumTraits<std::complex<double>>::Real result_type;
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE double operator()(
-+       const std::complex<double>& a) const {
-+@@ -54,7 +52,6 @@ struct scalar_arg_op<std::complex<double>> {
-+ #if EIGEN_HAS_CXX11_MATH == 0
-+ template <typename T>
-+ struct scalar_asinh_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_asinh_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& a) const {
-+     return static_cast<T>(std::asinh(a));
-+   }
-+@@ -66,7 +63,6 @@ struct functor_traits<scalar_asinh_op<T>> {
-+ 
-+ template <typename T>
-+ struct scalar_acosh_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_acosh_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& a) const {
-+     return static_cast<T>(std::acosh(a));
-+   }
-+@@ -78,7 +74,6 @@ struct functor_traits<scalar_acosh_op<T>> {
-+ 
-+ template <typename T>
-+ struct scalar_atanh_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_atanh_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& a) const {
-+     return static_cast<T>(std::atanh(a));
-+   }
-+@@ -157,7 +152,6 @@ struct functor_traits<safe_div_or_mod_op<T, DivOrMod>> {
-+ 
-+ template <typename T, typename Binary>
-+ struct no_nan_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(no_nan_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& a,
-+                                                      const T& b) const {
-+     if (b != T(0)) {
-+@@ -181,7 +175,6 @@ struct div_no_nan_op;
-+ template <typename T>
-+ struct div_no_nan_op<T, /*IsComplex=*/false>
-+     : public no_nan_op<T, scalar_quotient_op<T>> {
-+-  EIGEN_EMPTY_STRUCT_CTOR(div_no_nan_op)
-+ };
-+ 
-+ template <typename T>
-+@@ -197,7 +190,6 @@ struct functor_traits<div_no_nan_op<T, /*IsComplex=*/false>> {
-+ // by |b|^2, which may underflow to 0 for b != 0.
-+ template <typename T>
-+ struct div_no_nan_op<T, /*IsComplex=*/true> {
-+-  EIGEN_EMPTY_STRUCT_CTOR(div_no_nan_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& a,
-+                                                      const T& b) const {
-+     if (b == T(0)) {
-+@@ -234,7 +226,6 @@ struct functor_traits<div_no_nan_op<T, /*IsComplex=*/true>> {
-+ 
-+ template <typename T>
-+ struct mul_no_nan_op : public no_nan_op<T, scalar_product_op<T>> {
-+-  EIGEN_EMPTY_STRUCT_CTOR(mul_no_nan_op)
-+ };
-+ 
-+ template <typename T>
-+@@ -671,7 +662,6 @@ struct functor_traits<scalar_round_up_op<Scalar, IsInteger>> {
-+ 
-+ template <typename Scalar>
-+ struct bitwise_xor_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(bitwise_xor_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
-+   operator()(const Scalar& x, const Scalar& y) const {
-+     return x ^ y;
-+@@ -690,7 +680,6 @@ struct functor_traits<bitwise_xor_op<Scalar>> {
-+ 
-+ template <typename Scalar>
-+ struct xlogy_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(xlogy_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
-+   operator()(const Scalar& x, const Scalar& y) const {
-+     if (x == Scalar(0.)) {
-+@@ -721,7 +710,6 @@ struct functor_traits<xlogy_op<Scalar>> {
-+ 
-+ template <typename Scalar>
-+ struct xlog1py_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(xlog1py_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
-+   operator()(const Scalar& x, const Scalar& y) const {
-+     if (x == Scalar(0.)) {
-+@@ -756,7 +744,6 @@ struct functor_traits<xlog1py_op<Scalar>> {
-+ 
-+ template <typename Scalar>
-+ struct xdivy_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(xdivy_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
-+   operator()(const Scalar& x, const Scalar& y) const {
-+     if (x == Scalar(0.)) {
-+@@ -787,7 +774,6 @@ struct functor_traits<xdivy_op<Scalar>> {
-+ 
-+ template <typename T>
-+ struct scalar_erfinv_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_erfinv_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& x) const {
-+     constexpr T half = T(0.5);
-+     T y = numext::ndtri(half * x + half);
-+@@ -989,7 +975,6 @@ struct logical_not : base<bool, Eigen::internal::scalar_boolean_not_op<bool>> {
-+ // Flip all bits. Named invert to be consistent with numpy.
-+ template <typename T>
-+ struct invert_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(invert_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& a) const {
-+     return ~a;
-+   }
-+@@ -1116,7 +1101,6 @@ struct safe_pow : base<T, Eigen::internal::safe_scalar_binary_pow_op<T, T>> {
-+ template <typename T>
-+ struct safe_pow_ignore_error_op {
-+   static_assert(std::is_integral<T>::value, "Integer type expected");
-+-  EIGEN_EMPTY_STRUCT_CTOR(safe_pow_ignore_error_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& x,
-+                                                      const T& y) const {
-+     if (TF_PREDICT_FALSE(y < 0)) {
-+@@ -1159,7 +1143,6 @@ struct polygamma : base<T, Eigen::internal::scalar_polygamma_op<T>> {};
-+ 
-+ template <typename Scalar>
-+ struct scalar_atan2_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_atan2_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
-+   operator()(const Scalar& y, const Scalar& x) const {
-+ #if TENSORFLOW_USE_ROCM
-+@@ -1210,7 +1193,6 @@ struct logical_or : base<bool, Eigen::internal::scalar_boolean_or_op> {};
-+ 
-+ template <typename T>
-+ struct bitwise_and_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(bitwise_and_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& x,
-+                                                      const T& y) const {
-+     return x & y;
-+@@ -1219,7 +1201,6 @@ struct bitwise_and_op {
-+ 
-+ template <typename T>
-+ struct bitwise_or_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(bitwise_or_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& x,
-+                                                      const T& y) const {
-+     return x | y;
-+@@ -1237,7 +1218,6 @@ struct bitwise_xor : base<T, Eigen::internal::bitwise_xor_op<T>> {};
-+ 
-+ template <typename T>
-+ struct left_shift_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(left_shift_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& x,
-+                                                      const T& y) const {
-+     // Avoids UB: don't shift by larger than the bitwidth of T, and
-+@@ -1255,7 +1235,6 @@ struct left_shift_op {
-+ 
-+ template <typename T>
-+ struct right_shift_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(right_shift_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& x,
-+                                                      const T& y) const {
-+     // Avoids UB: don't shift by larger than the bitwidth of T.
-+diff --git a/tensorflow/core/kernels/cwise_ops_gradients.h b/tensorflow/core/kernels/cwise_ops_gradients.h
-+index 78f77caa6fe..ffad345026b 100644
-+--- a/tensorflow/core/kernels/cwise_ops_gradients.h
-++++ b/tensorflow/core/kernels/cwise_ops_gradients.h
-+@@ -26,7 +26,6 @@ namespace internal {
-+ // Gradient for the tanh function
-+ template <typename T>
-+ struct scalar_tanh_gradient_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_tanh_gradient_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const T
-+   operator()(const T& output, const T& output_gradient) const {
-+     return output_gradient * (T(1) - output * output);
-+@@ -49,7 +48,6 @@ struct functor_traits<scalar_tanh_gradient_op<T>> {
-+ // Gradient for the sigmoid function
-+ template <typename T>
-+ struct scalar_sigmoid_gradient_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_sigmoid_gradient_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const T
-+   operator()(const T& output, const T& output_gradient) const {
-+     return output_gradient * output * (T(1) - output);
-+@@ -72,7 +70,6 @@ struct functor_traits<scalar_sigmoid_gradient_op<T>> {
-+ // Gradient for the inverse function
-+ template <typename T>
-+ struct scalar_inverse_gradient_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_inverse_gradient_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const T
-+   operator()(const T& output, const T& output_gradient) const {
-+     if (output_gradient == T(0)) {
-+@@ -101,7 +98,6 @@ struct functor_traits<scalar_inverse_gradient_op<T>> {
-+ // Gradient for the sqrt function
-+ template <typename T>
-+ struct scalar_sqrt_gradient_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_sqrt_gradient_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const T
-+   operator()(const T& output, const T& output_gradient) const {
-+     if (output_gradient == T(0)) {
-+@@ -131,7 +127,6 @@ struct functor_traits<scalar_sqrt_gradient_op<T>> {
-+ // Gradient for the rsqrt function
-+ template <typename T>
-+ struct scalar_rsqrt_gradient_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_rsqrt_gradient_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const T
-+   operator()(const T& output, const T& output_gradient) const {
-+     if (output_gradient == T(0)) {
-+diff --git a/tensorflow/core/kernels/eigen_activations.h b/tensorflow/core/kernels/eigen_activations.h
-+index 302033e47c5..2d4e4884eee 100644
-+--- a/tensorflow/core/kernels/eigen_activations.h
-++++ b/tensorflow/core/kernels/eigen_activations.h
-+@@ -30,7 +30,6 @@ namespace Eigen {
-+  */
-+ template <typename T>
-+ struct scalar_sigmoid_fast_derivative_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_sigmoid_fast_derivative_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& y) const {
-+     const T one = T(1);
-+     return (one - y) * y;
-+@@ -64,7 +63,6 @@ struct functor_traits<scalar_sigmoid_fast_derivative_op<T> > {
-+  */
-+ template <typename T>
-+ struct scalar_tanh_fast_derivative_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_tanh_fast_derivative_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(const T& y) const {
-+     const T one = T(1);
-+     return one - (y * y);
-+@@ -96,7 +94,6 @@ struct functor_traits<scalar_tanh_fast_derivative_op<T> > {
-+  */
-+ template <typename Scalar>
-+ struct scalar_clip_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_clip_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar
-+   operator()(const Scalar& a, const Scalar& b) const {
-+     return numext::mini(numext::maxi(a, -b), b);
-+diff --git a/tensorflow/core/kernels/nextafter_op.h b/tensorflow/core/kernels/nextafter_op.h
-+index 3bf3ee5185d..7879543cc12 100644
-+--- a/tensorflow/core/kernels/nextafter_op.h
-++++ b/tensorflow/core/kernels/nextafter_op.h
-+@@ -24,7 +24,6 @@ namespace functor {
-+ 
-+ template <typename T>
-+ struct nextafter_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(nextafter_op)
-+   // GPU kernels on ROCm may have issues including standard C++ APIs. Use
-+   // specialized member functions and invoke HIP runtime APIs instead.
-+ #if !TENSORFLOW_USE_ROCM
-+diff --git a/tensorflow/core/kernels/quantization_utils.h b/tensorflow/core/kernels/quantization_utils.h
-+index 71c31836d67..5f96473d024 100644
-+--- a/tensorflow/core/kernels/quantization_utils.h
-++++ b/tensorflow/core/kernels/quantization_utils.h
-+@@ -666,7 +666,6 @@ inline void RequantizeManyInNewRange<quint8, qint32>(
-+ 
-+ template <int shift>
-+ struct int64_right_shift_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(int64_right_shift_op)
-+   EIGEN_DEVICE_FUNC
-+   EIGEN_STRONG_INLINE const int64_t operator()(const int64_t a) const {
-+     return a >> shift;
-+diff --git a/tensorflow/core/kernels/special_math/special_math_op_misc_impl.h b/tensorflow/core/kernels/special_math/special_math_op_misc_impl.h
-+index c290c47a384..8d39fabb5fb 100644
-+--- a/tensorflow/core/kernels/special_math/special_math_op_misc_impl.h
-++++ b/tensorflow/core/kernels/special_math/special_math_op_misc_impl.h
-+@@ -124,7 +124,6 @@ generic_dawsn_interval_3(const Scalar& x) {
-+ 
-+ template <typename Scalar>
-+ struct dawsn_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(dawsn_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
-+   operator()(const Scalar& x) const {
-+     const Scalar half = Scalar(0.5);
-+@@ -376,7 +375,6 @@ generic_expint_interval_7(const Scalar& x) {
-+ 
-+ template <typename Scalar>
-+ struct expint_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(expint_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
-+   operator()(const Scalar& x) const {
-+     const Scalar zero = Scalar(0.0);
-+@@ -533,7 +531,6 @@ generic_fresnel_asymp(const Scalar& x, bool use_sin) {
-+ 
-+ template <typename Scalar>
-+ struct fresnel_cos_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(fresnel_cos_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
-+   operator()(const Scalar& x) const {
-+     const Scalar zero = Scalar(0.);
-+@@ -567,7 +564,6 @@ struct fresnel_cos_op {
-+ 
-+ template <typename Scalar>
-+ struct fresnel_sin_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(fresnel_sin_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
-+   operator()(const Scalar& x) const {
-+     const Scalar zero = Scalar(0.);
-+@@ -602,7 +598,6 @@ struct fresnel_sin_op {
-+ // Implementation of Spence's Integral based on Cephes.
-+ template <typename Scalar>
-+ struct spence_op {
-+-  EIGEN_EMPTY_STRUCT_CTOR(spence_op)
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar
-+   operator()(const Scalar& x) const {
-+     const Scalar A[] = {
 +diff --git a/tensorflow/core/platform/default/build_config/BUILD b/tensorflow/core/platform/default/build_config/BUILD
 +index 9746e6e5222..359f756043e 100644
 +--- a/tensorflow/core/platform/default/build_config/BUILD
@@ -422,10 +143,10 @@ index 00000000..15ed12c1
 +     }),
 +     deps = [
 +diff --git a/tensorflow/core/profiler/utils/xplane_utils.cc b/tensorflow/core/profiler/utils/xplane_utils.cc
-+index f66546236c1..3c7316bdd90 100644
++index 801d1b3ff1a..2294a6a0f90 100644
 +--- a/tensorflow/core/profiler/utils/xplane_utils.cc
 ++++ b/tensorflow/core/profiler/utils/xplane_utils.cc
-+@@ -104,7 +104,8 @@ const XPlane* FindPlaneWithName(const XSpace& space, absl::string_view name) {
++@@ -138,7 +138,8 @@ const XPlane* FindPlaneWithName(const XSpace& space, absl::string_view name) {
 + 
 + std::vector<const XPlane*> FindPlanesWithNames(
 +     const XSpace& space, const std::vector<absl::string_view>& names) {
@@ -436,7 +157,7 @@ index 00000000..15ed12c1
 +       FindAll(space.planes(), [&names_set](const XPlane* plane) {
 +         return names_set.contains(plane->name());
 +diff --git a/tensorflow/python/lib/core/ndarray_tensor.cc b/tensorflow/python/lib/core/ndarray_tensor.cc
-+index 6db74a943f7..c434ccf2970 100644
++index 097ecf683ea..9206f610057 100644
 +--- a/tensorflow/python/lib/core/ndarray_tensor.cc
 ++++ b/tensorflow/python/lib/core/ndarray_tensor.cc
 +@@ -16,7 +16,7 @@ limitations under the License.
@@ -448,11 +169,297 @@ index 00000000..15ed12c1
 + 
 + #include "tensorflow/c/eager/tfe_context_internal.h"
 + #include "tensorflow/c/tf_tensor_internal.h"
++diff --git a/tensorflow/stream_executor/cuda/BUILD b/tensorflow/stream_executor/cuda/BUILD
++index 4d6a692f4fe..94a243907f6 100644
++--- a/tensorflow/stream_executor/cuda/BUILD
+++++ b/tensorflow/stream_executor/cuda/BUILD
++@@ -2,7 +2,7 @@
++ #   CUDA-platform specific StreamExecutor support code.
++ 
++ load("//tensorflow:tensorflow.bzl", "tf_cc_test", "tf_copts", "tf_cuda_cc_test")
++-load("//tensorflow:tensorflow.bzl", "filegroup")
+++load("//tensorflow:tensorflow.bzl", "check_deps", "filegroup")
++ load(
++     "//tensorflow/stream_executor:build_defs.bzl",
++     "stream_executor_friends",
++@@ -260,6 +260,18 @@ alias(
++     visibility = ["//visibility:public"],
++ )
++ 
+++cc_library(
+++    name = "cublas_lt_header",
+++    hdrs = [
+++        "cuda_blas_lt.h",
+++        "cuda_blas_utils.h",
+++    ],
+++    visibility = ["//visibility:public"],
+++    deps = [
+++        "//tensorflow/stream_executor/platform",
+++    ],
+++)
+++
++ cc_library(
++     name = "cublas_lt_stub",
++     srcs = if_cuda_is_configured(["cublasLt_stub.cc"]),
++@@ -689,6 +701,30 @@ cc_library(
++     alwayslink = 1,
++ )
++ 
+++# To avoid duplication, check that the C++ or python library does not depend on
+++# the stream executor cuda plugins. Targets that want to use cuda APIs should
+++# instead depend on the dummy plugins in //tensorflow/core/platform/default/build_config
+++# and use header only targets.
+++check_deps(
+++    name = "cuda_plugins_check_deps",
+++    disallowed_deps = if_static(
+++        [],
+++        otherwise = [
+++            ":all_runtime",
+++            ":cuda_driver",
+++            ":cuda_platform",
+++            ":cudnn_plugin",
+++            ":cufft_plugin",
+++            ":curand_plugin",
+++            "//tensorflow/stream_executor:cuda_platform",
+++        ],
+++    ),
+++    deps = [
+++        "//tensorflow:tensorflow_cc",
+++        "//tensorflow/python:pywrap_tensorflow_internal",
+++    ],
+++)
+++
++ tf_cuda_cc_test(
++     name = "redzone_allocator_test",
++     srcs = ["redzone_allocator_test.cc"],
++diff --git a/tensorflow/stream_executor/cuda/cublas_11_0.inc b/tensorflow/stream_executor/cuda/cublas_11_0.inc
++index ebc4ec29693..d287a91c562 100644
++--- a/tensorflow/stream_executor/cuda/cublas_11_0.inc
+++++ b/tensorflow/stream_executor/cuda/cublas_11_0.inc
++@@ -1,7 +1,6 @@
++ // Auto-generated, do not edit.
++ 
++ extern "C" {
++-
++ cublasStatus_t CUBLASWINAPI cublasCreate_v2(cublasHandle_t *handle) {
++   using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(cublasHandle_t *);
++   static auto func_ptr = LoadSymbol<FuncPtr>("cublasCreate_v2");
++@@ -119,6 +118,36 @@ cublasStatus_t CUBLASWINAPI cublasSetMathMode(cublasHandle_t handle,
++   return func_ptr(handle, mode);
++ }
++ 
+++cublasStatus_t CUBLASWINAPI cublasGetSmCountTarget(cublasHandle_t handle,
+++                                                   int *smCountTarget) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(cublasHandle_t, int *);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasGetSmCountTarget");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, smCountTarget);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasSetSmCountTarget(cublasHandle_t handle,
+++                                                   int smCountTarget) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(cublasHandle_t, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasSetSmCountTarget");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, smCountTarget);
+++}
+++
+++const char *CUBLASWINAPI cublasGetStatusName(cublasStatus_t status) {
+++  using FuncPtr = const char *(CUBLASWINAPI *)(cublasStatus_t);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasGetStatusName");
+++  if (!func_ptr) return "cublasGetStatusName symbol not found.";
+++  return func_ptr(status);
+++}
+++
+++const char *CUBLASWINAPI cublasGetStatusString(cublasStatus_t status) {
+++  using FuncPtr = const char *(CUBLASWINAPI *)(cublasStatus_t);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasGetStatusString");
+++  if (!func_ptr) return "cublasGetStatusString symbol not found.";
+++  return func_ptr(status);
+++}
+++
++ cublasStatus_t CUBLASWINAPI cublasLoggerConfigure(int logIsOn, int logToStdOut,
++                                                   int logToStdErr,
++                                                   const char *logFileName) {
++@@ -1976,6 +2005,141 @@ cublasZhpr2_v2(cublasHandle_t handle, cublasFillMode_t uplo, int n,
++   return func_ptr(handle, uplo, n, alpha, x, incx, y, incy, AP);
++ }
++ 
+++cublasStatus_t CUBLASWINAPI cublasSgemvBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const float *alpha, /* host or device pointer */
+++    const float *const Aarray[], int lda, const float *const xarray[], int incx,
+++    const float *beta, /* host or device pointer */
+++    float *const yarray[], int incy, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const float *,
+++      const float *const[], int, const float *const[], int, const float *,
+++      float *const[], int, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasSgemvBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, Aarray, lda, xarray, incx, beta,
+++                  yarray, incy, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasDgemvBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const double *alpha, /* host or device pointer */
+++    const double *const Aarray[], int lda, const double *const xarray[],
+++    int incx, const double *beta, /* host or device pointer */
+++    double *const yarray[], int incy, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const double *,
+++      const double *const[], int, const double *const[], int, const double *,
+++      double *const[], int, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasDgemvBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, Aarray, lda, xarray, incx, beta,
+++                  yarray, incy, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasCgemvBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const cuComplex *alpha, /* host or device pointer */
+++    const cuComplex *const Aarray[], int lda, const cuComplex *const xarray[],
+++    int incx, const cuComplex *beta, /* host or device pointer */
+++    cuComplex *const yarray[], int incy, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const cuComplex *,
+++      const cuComplex *const[], int, const cuComplex *const[], int,
+++      const cuComplex *, cuComplex *const[], int, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasCgemvBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, Aarray, lda, xarray, incx, beta,
+++                  yarray, incy, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI
+++cublasZgemvBatched(cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++                   const cuDoubleComplex *alpha, /* host or device pointer */
+++                   const cuDoubleComplex *const Aarray[], int lda,
+++                   const cuDoubleComplex *const xarray[], int incx,
+++                   const cuDoubleComplex *beta, /* host or device pointer */
+++                   cuDoubleComplex *const yarray[], int incy, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const cuDoubleComplex *,
+++      const cuDoubleComplex *const[], int, const cuDoubleComplex *const[], int,
+++      const cuDoubleComplex *, cuDoubleComplex *const[], int, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasZgemvBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, Aarray, lda, xarray, incx, beta,
+++                  yarray, incy, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasSgemvStridedBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const float *alpha,                             /* host or device pointer */
+++    const float *A, int lda, long long int strideA, /* purposely signed */
+++    const float *x, int incx, long long int stridex,
+++    const float *beta, /* host or device pointer */
+++    float *y, int incy, long long int stridey, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const float *, const float *,
+++      int, long long, const float *, int, long long, const float *, float *,
+++      int, long long, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasSgemvStridedBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, A, lda, strideA, x, incx, stridex,
+++                  beta, y, incy, stridey, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasDgemvStridedBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const double *alpha, /* host or device pointer */
+++    const double *A, int lda, long long int strideA, /* purposely signed */
+++    const double *x, int incx, long long int stridex,
+++    const double *beta, /* host or device pointer */
+++    double *y, int incy, long long int stridey, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const double *,
+++      const double *, int, long long, const double *, int, long long,
+++      const double *, double *, int, long long, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasDgemvStridedBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, A, lda, strideA, x, incx, stridex,
+++                  beta, y, incy, stridey, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasCgemvStridedBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const cuComplex *alpha, /* host or device pointer */
+++    const cuComplex *A, int lda, long long int strideA, /* purposely signed */
+++    const cuComplex *x, int incx, long long int stridex,
+++    const cuComplex *beta, /* host or device pointer */
+++    cuComplex *y, int incy, long long int stridey, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const cuComplex *,
+++      const cuComplex *, int, long long, const cuComplex *, int, long long,
+++      const cuComplex *, cuComplex *, int, long long, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasCgemvStridedBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, A, lda, strideA, x, incx, stridex,
+++                  beta, y, incy, stridey, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasZgemvStridedBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const cuDoubleComplex *alpha, /* host or device pointer */
+++    const cuDoubleComplex *A, int lda,
+++    long long int strideA, /* purposely signed */
+++    const cuDoubleComplex *x, int incx, long long int stridex,
+++    const cuDoubleComplex *beta, /* host or device pointer */
+++    cuDoubleComplex *y, int incy, long long int stridey, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const cuDoubleComplex *,
+++      const cuDoubleComplex *, int, long long, const cuDoubleComplex *, int,
+++      long long, const cuDoubleComplex *, cuDoubleComplex *, int, long long,
+++      int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasZgemvStridedBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, A, lda, strideA, x, incx, stridex,
+++                  beta, y, incy, stridey, batchCount);
+++}
+++
++ cublasStatus_t CUBLASWINAPI cublasSgemm_v2(
++     cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
++     int m, int n, int k, const float *alpha, /* host or device pointer */
++@@ -5030,11 +5194,4 @@ void CUBLASWINAPI cublasZtrmm(char side, char uplo, char transa, char diag,
++   return func_ptr(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
++ }
++ 
++-CUBLASAPI const char* CUBLASWINAPI cublasGetStatusString(cublasStatus_t status) {
++-  using FuncPtr = const char*(CUBLASWINAPI *)(cublasStatus_t);
++-  static auto func_ptr = LoadSymbol<FuncPtr>("cublasGetStatusString");
++-  if (!func_ptr) LogFatalSymbolNotFound("cublasGetStatusString");
++-  return func_ptr(status);
++-}
++-
++ }  // extern "C"
++diff --git a/tensorflow/tensorflow.bzl b/tensorflow/tensorflow.bzl
++index 69d452836d5..2ae11595378 100644
++--- a/tensorflow/tensorflow.bzl
+++++ b/tensorflow/tensorflow.bzl
++@@ -1162,6 +1162,7 @@ def tf_gen_op_wrappers_cc(
++             clean_dep("//tensorflow/core:portable_tensorflow_lib"),
++         ]),
++         copts = tf_copts(),
+++        linkopts = ['-lrt'],
++         alwayslink = 1,
++         visibility = visibility,
++         compatible_with = compatible_with,
++@@ -1180,6 +1181,7 @@ def tf_gen_op_wrappers_cc(
++             clean_dep("//tensorflow/core:portable_tensorflow_lib"),
++         ]),
++         copts = tf_copts(),
+++        linkopts = ['-lrt'],
++         alwayslink = 1,
++         visibility = [clean_dep("//tensorflow:internal")],
++         compatible_with = compatible_with,
 +diff --git a/tensorflow/workspace2.bzl b/tensorflow/workspace2.bzl
-+index c9d2c75ab17..4804d4a3c01 100644
++index e255103df98..a1351145954 100644
 +--- a/tensorflow/workspace2.bzl
 ++++ b/tensorflow/workspace2.bzl
-+@@ -489,6 +489,17 @@ def _tf_repositories():
++@@ -497,6 +497,17 @@ def _tf_repositories():
 +         urls = tf_mirror_urls("https://curl.haxx.se/download/curl-7.84.0.tar.gz"),
 +     )
 + 
@@ -470,7 +477,7 @@ index 00000000..15ed12c1
 +     # WARNING: make sure ncteisen@ and vpai@ are cc-ed on any CL to change the below rule
 +     tf_http_archive(
 +         name = "com_github_grpc_grpc",
-+@@ -546,10 +557,11 @@ def _tf_repositories():
++@@ -554,10 +565,11 @@ def _tf_repositories():
 + 
 +     tf_http_archive(
 +         name = "boringssl",
@@ -487,18 +494,18 @@ index 00000000..15ed12c1
 +     # Note: if you update this, you have to update libpng too. See cl/437813808
 +diff --git a/third_party/boringssl/0001-Added-bazel-build-files.patch b/third_party/boringssl/0001-Added-bazel-build-files.patch
 +new file mode 100644
-+index 00000000000..fb4d52cd48e
++index 00000000000..d2dfca8533f
 +--- /dev/null
 ++++ b/third_party/boringssl/0001-Added-bazel-build-files.patch
-+@@ -0,0 +1,53139 @@
-++From 4844880d1f4d3a0337698e143ebf1157cfae9c64 Mon Sep 17 00:00:00 2001
++@@ -0,0 +1,53140 @@
+++From ddd7f8bd7837a4eab3ca914bbaed9bd90904aa74 Mon Sep 17 00:00:00 2001
 ++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-++Date: Thu, 23 Jun 2022 00:27:59 -0400
+++Date: Tue, 22 Nov 2022 07:39:11 +0000
 ++Subject: [PATCH] Added Bazel Build files
 ++
 ++---
 ++ BUILD                                         |  139 +
-++ BUILD.generated.bzl                           |  567 ++
+++ BUILD.generated.bzl                           |  568 ++
 ++ err_data.c                                    | 1475 +++
 ++ linux-ppc64le/ypto/fipsmodule/aesp8-ppc.S     | 3670 +++++++
 ++ linux-ppc64le/ypto/fipsmodule/ghashp8-ppc.S   |  587 ++
@@ -522,7 +529,7 @@ index 00000000..15ed12c1
 ++ linux-x86_64/ypto/fipsmodule/x86_64-mont.S    | 1260 +++
 ++ linux-x86_64/ypto/fipsmodule/x86_64-mont5.S   | 3790 +++++++
 ++ linux-x86_64/ypto/test/trampoline-x86_64.S    |  518 +
-++ 25 files changed, 52928 insertions(+)
+++ 25 files changed, 52929 insertions(+)
 ++ create mode 100644 BUILD
 ++ create mode 100644 BUILD.generated.bzl
 ++ create mode 100644 err_data.c
@@ -696,10 +703,10 @@ index 00000000..15ed12c1
 +++)
 ++diff --git a/BUILD.generated.bzl b/BUILD.generated.bzl
 ++new file mode 100644
-++index 000000000..f146c2755
+++index 000000000..422ac8b74
 ++--- /dev/null
 +++++ b/BUILD.generated.bzl
-++@@ -0,0 +1,567 @@
+++@@ -0,0 +1,568 @@
 +++# This file is created by generate_build_files.py. Do not edit manually.
 +++
 +++ssl_headers = [
@@ -997,6 +1004,7 @@ index 00000000..15ed12c1
 +++    "crypto/asn1/time_support.c",
 +++    "crypto/base64/base64.c",
 +++    "crypto/bio/bio.c",
++++    "decrepit/bio/base64_bio.c",
 +++    "crypto/bio/bio_mem.c",
 +++    "crypto/bio/connect.c",
 +++    "crypto/bio/fd.c",
@@ -1269,7 +1277,7 @@ index 00000000..15ed12c1
 +++
 ++diff --git a/err_data.c b/err_data.c
 ++new file mode 100644
-++index 000000000..6a7ee066a
+++index 000000000..7657d868a
 ++--- /dev/null
 +++++ b/err_data.c
 ++@@ -0,0 +1,1475 @@
@@ -53628,50 +53636,8 @@ index 00000000..15ed12c1
 +++#endif
 +++.section	.note.GNU-stack,"",@progbits
 ++-- 
-++2.23.0
+++2.34.1
 ++
-+diff --git a/third_party/cpuinfo/cpuinfo.BUILD b/third_party/cpuinfo/cpuinfo.BUILD
-+index e362682b810..050bc7d2936 100644
-+--- a/third_party/cpuinfo/cpuinfo.BUILD
-++++ b/third_party/cpuinfo/cpuinfo.BUILD
-+@@ -109,6 +109,7 @@ cc_library(
-+         ":linux_mips64": COMMON_SRCS + LINUX_SRCS,
-+         ":linux_riscv64": COMMON_SRCS + LINUX_SRCS,
-+         ":linux_s390x": COMMON_SRCS + LINUX_SRCS,
-++        ":linux_ppc64le": COMMON_SRCS + LINUX_SRCS,
-+         ":macos_x86_64": COMMON_SRCS + X86_SRCS + MACH_SRCS + MACH_X86_SRCS,
-+         ":macos_arm64": COMMON_SRCS + MACH_SRCS + MACH_ARM_SRCS,
-+         ":windows_x86_64": COMMON_SRCS + X86_SRCS + WINDOWS_X86_SRCS,
-+diff --git a/third_party/eigen3/unsupported/Eigen/CXX11/src/FixedPoint/PacketMathAVX2.h b/third_party/eigen3/unsupported/Eigen/CXX11/src/FixedPoint/PacketMathAVX2.h
-+index 4c5e02abc9d..385aaf8c739 100644
-+--- a/third_party/eigen3/unsupported/Eigen/CXX11/src/FixedPoint/PacketMathAVX2.h
-++++ b/third_party/eigen3/unsupported/Eigen/CXX11/src/FixedPoint/PacketMathAVX2.h
-+@@ -514,9 +514,7 @@ EIGEN_STRONG_INLINE QInt8 predux_max<Packet32q8i>(const Packet32q8i& a) {
-+ template <>
-+ struct scalar_product_op<QInt32, double> : binary_op_base<QInt32, double> {
-+   typedef typename ScalarBinaryOpTraits<QInt32, double>::ReturnType result_type;
-+-#ifndef EIGEN_SCALAR_BINARY_OP_PLUGIN
-+-  EIGEN_EMPTY_STRUCT_CTOR(scalar_product_op)
-+-#else
-++#ifdef EIGEN_SCALAR_BINARY_OP_PLUGIN
-+   scalar_product_op() { EIGEN_SCALAR_BINARY_OP_PLUGIN }
-+ #endif
-+   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE result_type
-+diff --git a/third_party/eigen3/workspace.bzl b/third_party/eigen3/workspace.bzl
-+index 4d327eedb37..97b0a85a4e2 100644
-+--- a/third_party/eigen3/workspace.bzl
-++++ b/third_party/eigen3/workspace.bzl
-+@@ -7,8 +7,8 @@ def repo():
-+ 
-+     # Attention: tools parse and update these lines.
-+     # LINT.IfChange
-+-    EIGEN_COMMIT = "008ff3483a8c5604639e1c4d204eae30ad737af6"
-+-    EIGEN_SHA256 = "e1dd31ce174c3d26fbe38388f64b09d2adbd7557a59e90e6f545a288cc1755fc"
-++    EIGEN_COMMIT = "c2f15edc43367c3a11aacbb51c7431ccb5a31bb5"
-++    EIGEN_SHA256 = "052754f4575ec9ae30e00e182eae22a2ec756768f07109b67428dc0c06feaecc"
-+     # LINT.ThenChange(//tensorflow/lite/tools/cmake/modules/eigen.cmake)
-+ 
-+     tf_http_archive(
 +diff --git a/third_party/gpus/cuda/BUILD.tpl b/third_party/gpus/cuda/BUILD.tpl
 +index 8f783e58d66..3590ce32dae 100644
 +--- a/third_party/gpus/cuda/BUILD.tpl
@@ -53699,7 +53665,7 @@ index 00000000..15ed12c1
 + )
 + 
 +diff --git a/third_party/gpus/cuda_configure.bzl b/third_party/gpus/cuda_configure.bzl
-+index ed8ba3d5205..adc07ccf904 100644
++index 1428dc8883f..3640a7629d4 100644
 +--- a/third_party/gpus/cuda_configure.bzl
 ++++ b/third_party/gpus/cuda_configure.bzl
 +@@ -51,6 +51,7 @@ load(
@@ -53753,7 +53719,7 @@ index 00000000..15ed12c1
 +     return inc_entries
 + 
 + def enable_cuda(repository_ctx):
-+@@ -600,6 +630,7 @@ def _find_libs(repository_ctx, check_cuda_libs_script, cuda_config):
++@@ -605,6 +635,7 @@ def _find_libs(repository_ctx, check_cuda_libs_script, cuda_config):
 +             cuda_config.cusparse_version,
 +             static = False,
 +         ),
@@ -53761,6 +53727,23 @@ index 00000000..15ed12c1
 +     }
 + 
 +     # Verify that the libs actually exist at their locations.
++@@ -1211,10 +1242,12 @@ def _create_local_cuda_repository(repository_ctx):
++     # TODO: when bazel stops adding '-B/usr/bin' by default, remove this
++     #       flag from the CROSSTOOL completely (see
++     #       https://github.com/bazelbuild/bazel/issues/5634)
++-    if should_download_clang:
++-        cuda_defines["%{linker_bin_path}"] = ""
++-    else:
++-        cuda_defines["%{linker_bin_path}"] = host_compiler_prefix
+++    # if should_download_clang:
+++    #     cuda_defines["%{linker_bin_path}"] = ""
+++    # else:
+++    #     cuda_defines["%{linker_bin_path}"] = host_compiler_prefix
+++    # Never add -B/usr/bin
+++    cuda_defines["%{linker_bin_path}"] = ""
++ 
++     cuda_defines["%{extra_no_canonical_prefixes_flags}"] = ""
++     cuda_defines["%{unfiltered_compile_flags}"] = ""
 +diff --git a/third_party/grpc/generate_cc_env_fix.patch b/third_party/grpc/generate_cc_env_fix.patch
 +index 51832fe9628..84093655824 100644
 +--- a/third_party/grpc/generate_cc_env_fix.patch
@@ -53894,48 +53877,6 @@ index 00000000..15ed12c1
 ++-- 
 ++2.34.1
 ++
-+diff --git a/third_party/llvm/fix_ppc64le.patch b/third_party/llvm/fix_ppc64le.patch
-+new file mode 100644
-+index 00000000000..3ed53b48164
-+--- /dev/null
-++++ b/third_party/llvm/fix_ppc64le.patch
-+@@ -0,0 +1,24 @@
-++From dffd421dd8a2410598f0053678f4c0bb9714daf9 Mon Sep 17 00:00:00 2001
-++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-++Date: Mon, 21 Mar 2022 08:14:31 -0400
-++Subject: [PATCH] Fix build on ppc64le
-++
-++---
-++ utils/bazel/llvm-project-overlay/llvm/config.bzl | 1 +
-++ 1 file changed, 1 insertion(+)
-++
-++diff --git a/utils/bazel/llvm-project-overlay/llvm/config.bzl b/utils/bazel/llvm-project-overlay/llvm/config.bzl
-++index 772714f38941..9ed63e8d44a3 100644
-++--- a/utils/bazel/llvm-project-overlay/llvm/config.bzl
-+++++ b/utils/bazel/llvm-project-overlay/llvm/config.bzl
-++@@ -86,6 +86,7 @@ llvm_config_defines = os_defines + select({
-++     "//llvm:macos_arm64": native_arch_defines("AArch64", "arm64-apple-darwin"),
-++     "@bazel_tools//src/conditions:darwin": native_arch_defines("X86", "x86_64-unknown-darwin"),
-++     "@bazel_tools//src/conditions:linux_aarch64": native_arch_defines("AArch64", "aarch64-unknown-linux-gnu"),
-+++    "@bazel_tools//src/conditions:linux_ppc64le": native_arch_defines("PowerPC", "powerpc64le-unknown-linux-gnu"),
-++     "//conditions:default": native_arch_defines("X86", "x86_64-unknown-linux-gnu"),
-++ }) + [
-++     # These shouldn't be needed by the C++11 standard, but are for some
-++-- 
-++2.23.0
-++
-+diff --git a/third_party/llvm/workspace.bzl b/third_party/llvm/workspace.bzl
-+index 82d0f71ccbd..e619c12ad17 100644
-+--- a/third_party/llvm/workspace.bzl
-++++ b/third_party/llvm/workspace.bzl
-+@@ -16,6 +16,6 @@ def repo(name):
-+             "https://github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT),
-+         ],
-+         build_file = "//third_party/llvm:llvm.BUILD",
-+-        patch_file = ["//third_party/llvm:macos_build_fix.patch"],
-++        patch_file = ["//third_party/llvm:macos_build_fix.patch", "//third_party/llvm:fix_ppc64le.patch"],
-+         link_files = {"//third_party/llvm:run_lit.sh": "mlir/run_lit.sh"},
-+     )
 +diff --git a/third_party/systemlibs/sqlite.BUILD b/third_party/systemlibs/sqlite.BUILD
 +index 88a84a96137..31fc5ed5e88 100644
 +--- a/third_party/systemlibs/sqlite.BUILD
@@ -53979,20 +53920,34 @@ index 00000000..15ed12c1
 + # This is a Copybara sync helper for Google.
 + py_library(
 +     name = "python",
++diff --git a/third_party/tensorrt/BUILD.tpl b/third_party/tensorrt/BUILD.tpl
++index 7fa5935d395..f54fe4f7523 100644
++--- a/third_party/tensorrt/BUILD.tpl
+++++ b/third_party/tensorrt/BUILD.tpl
++@@ -37,6 +37,7 @@ cc_library(
++         "//conditions:default": [":tensorrt_lib"],
++     }),
++     linkstatic = 1,
+++    linkopts = ['-L/usr/lib64'],
++     deps = [
++         ":tensorrt_headers",
++         # TODO(b/174608722): fix this line.
 +diff --git a/third_party/tensorrt/tensorrt_configure.bzl b/third_party/tensorrt/tensorrt_configure.bzl
-+index 562ff08fbed..f1bfe57f183 100644
++index 562ff08fbed..a01e6878265 100644
 +--- a/third_party/tensorrt/tensorrt_configure.bzl
 ++++ b/third_party/tensorrt/tensorrt_configure.bzl
-+@@ -146,6 +146,7 @@ def _create_local_tensorrt_repository(repository_ctx):
++@@ -145,7 +145,9 @@ def _create_local_tensorrt_repository(repository_ctx):
++ 
 +     # Copy the library and header files.
 +     libraries = [lib_name(lib, cpu_value, trt_version) for lib in _TF_TENSORRT_LIBS]
+++    libraries.append("libmyelin.so.1")
 + 
 ++    libraries.append("libmyelin.so.1")
 +     library_dir = config["tensorrt_library_dir"] + "/"
 +     headers = _get_tensorrt_headers(trt_version)
 +     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
-+2.23.0
++2.34.1
 +
 -- 
 2.23.0

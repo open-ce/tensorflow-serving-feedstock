@@ -1,24 +1,24 @@
-From 061b895468e77d4360848fa954053c0d0a4de8d5 Mon Sep 17 00:00:00 2001
+From c33d719f58666d66dc43a9e8b7cad3b265ef06f1 Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Wed, 21 Sep 2022 06:31:34 -0500
-Subject: [PATCH] TF Serving fixed on x86
+Date: Wed, 23 Nov 2022 06:23:14 +0000
+Subject: [PATCH] TF Serving Build fixed on x86
 
 ---
  WORKSPACE                                     |     1 +
  third_party/tensorflow/BUILD                  |     0
- .../tensorflow/TF-Build-fix-x86-64.patch      | 53519 ++++++++++++++++
- 3 files changed, 53520 insertions(+)
+ .../tensorflow/TF-Build-fix-x86-64.patch      | 53739 ++++++++++++++++
+ 3 files changed, 53740 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/TF-Build-fix-x86-64.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 533a73b7..20777b7d 100644
+index eb7d4a9f..e86fb357 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -17,6 +17,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "cd6db9301e3537ced2ea3b2c2ef7671e1134e4dd5ed2617b79ff1ddc864c1d62",
-     git_commit = "18960c44ad3f5219c22dca55f842912dbce78a07",
+     sha256 = "094320c39b502bcaa3412744517e21e3cd80f55db1371e6692dfe23eeb3cef04",
+     git_commit = "fdfc646704c37bdf450525f6ced9d80df86e4993",
 +    patch = "//third_party/tensorflow:TF-Build-fix-x86-64.patch",
  )
  
@@ -28,42 +28,107 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/TF-Build-fix-x86-64.patch b/third_party/tensorflow/TF-Build-fix-x86-64.patch
 new file mode 100644
-index 00000000..7ff9595a
+index 00000000..3b91a72a
 --- /dev/null
 +++ b/third_party/tensorflow/TF-Build-fix-x86-64.patch
-@@ -0,0 +1,53519 @@
-+From ad0b57aea8f5969f3126f0fd761f54d732934641 Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,53739 @@
++From 1b166b5772d16163c8fa34ff2ca51a8abd304900 Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Wed, 21 Sep 2022 06:30:47 -0500
-+Subject: [PATCH] TF build fixed on x86
++Date: Tue, 22 Nov 2022 07:43:01 +0000
++Subject: [PATCH] TF fixed on x86
 +
 +---
++ tensorflow/compiler/xla/service/gpu/BUILD     |    10 +-
++ tensorflow/core/kernels/BUILD                 |     5 +-
 + .../core/profiler/utils/xplane_utils.cc       |     3 +-
 + tensorflow/python/lib/core/ndarray_tensor.cc  |     2 +-
++ tensorflow/stream_executor/cuda/BUILD         |    38 +-
++ .../stream_executor/cuda/cublas_11_0.inc      |   173 +-
 + tensorflow/tensorflow.bzl                     |     2 +
 + tensorflow/workspace2.bzl                     |    18 +-
-+ .../0001-Added-bazel-build-files.patch        | 53139 ++++++++++++++++
-+ third_party/cpuinfo/cpuinfo.BUILD             |     6 +
-+ third_party/eigen3/eigen.patch                |    28 +
-+ third_party/eigen3/workspace.bzl              |     1 +
++ .../0001-Added-bazel-build-files.patch        | 53140 ++++++++++++++++
 + third_party/gpus/cuda_configure.bzl           |    10 +-
 + third_party/grpc/upb_gcc10.patch              |    54 +
-+ third_party/llvm/fix_ppc64le.patch            |    24 +
-+ third_party/llvm/workspace.bzl                |     2 +-
 + third_party/systemlibs/sqlite.BUILD           |    27 +-
 + third_party/tensorrt/BUILD.tpl                |     1 +
 + third_party/tensorrt/tensorrt_configure.bzl   |     1 +
-+ 15 files changed, 53307 insertions(+), 11 deletions(-)
++ 14 files changed, 53459 insertions(+), 25 deletions(-)
 + create mode 100644 third_party/boringssl/0001-Added-bazel-build-files.patch
-+ create mode 100644 third_party/eigen3/eigen.patch
 + create mode 100644 third_party/grpc/upb_gcc10.patch
-+ create mode 100644 third_party/llvm/fix_ppc64le.patch
 +
++diff --git a/tensorflow/compiler/xla/service/gpu/BUILD b/tensorflow/compiler/xla/service/gpu/BUILD
++index 29b24cc9562..2fd0dfb042b 100644
++--- a/tensorflow/compiler/xla/service/gpu/BUILD
+++++ b/tensorflow/compiler/xla/service/gpu/BUILD
++@@ -810,8 +810,8 @@ cc_library(
++         ":precompiled_kernels",
++         ":triangular_solve_thunk",
++     ]) + if_cuda_is_configured([
++-        "//tensorflow/stream_executor/cuda:cublas_plugin",
++         "//tensorflow/stream_executor/cuda:cuda_stream",
+++        "//tensorflow/core/platform/default/build_config:cublas_plugin",
++         "//tensorflow/core/platform/default/build_config:cudnn_plugin",
++         "//tensorflow/core/platform/default/build_config:cufft_plugin",
++         "//tensorflow/core/platform/default/build_config:stream_executor_cuda",  # build_cleaner: keep
++@@ -1057,9 +1057,10 @@ cc_library(
++         "//tensorflow/compiler/xla/service:buffer_assignment",
++         "//tensorflow/compiler/xla:status",
++         "//tensorflow/core:tflite_portable_logging",
++-        "//tensorflow/stream_executor/cuda:cublas_plugin",
+++        "//tensorflow/core/platform/default/build_config:cublas_plugin",
++         "//tensorflow/stream_executor:device_memory",
++         "//tensorflow/stream_executor:stream_header",
+++        "//tensorflow/stream_executor/cuda:cublas_lt_header",
++     ]),
++ )
++ 
++@@ -1085,7 +1086,7 @@ cc_library(
++         "//tensorflow/core/protobuf:autotuning_proto_cc",
++         "//tensorflow/core/util/proto:proto_utils",
++         "//tensorflow/stream_executor:blas",
++-        "//tensorflow/stream_executor/cuda:cublas_plugin",
+++        "//tensorflow/core/platform/default/build_config:cublas_plugin",
++         "//tensorflow/stream_executor:device_memory",
++         "//tensorflow/stream_executor:device_memory_allocator",
++         "//tensorflow/stream_executor/gpu:redzone_allocator",
++@@ -1114,7 +1115,8 @@ cc_library(
++         "//tensorflow/core/platform:statusor",
++         "//tensorflow/stream_executor:stream_header",
++     ] + if_cuda_is_configured([
++-        "//tensorflow/stream_executor/cuda:cublas_plugin",
+++        "//tensorflow/stream_executor/cuda:cublas_lt_header",
+++        "//tensorflow/core/platform/default/build_config:cublas_plugin",
++         "//tensorflow/stream_executor:host_or_device_scalar",
++         "//tensorflow/stream_executor:scratch_allocator",
++     ]),
++diff --git a/tensorflow/core/kernels/BUILD b/tensorflow/core/kernels/BUILD
++index b2865e4cb74..8f22ec29d13 100644
++--- a/tensorflow/core/kernels/BUILD
+++++ b/tensorflow/core/kernels/BUILD
++@@ -3620,7 +3620,7 @@ tf_kernel_library(
++         "//conditions:default": [],
++     }) + mkl_deps() + if_cuda([
++         ":matmul_util",
++-        "//tensorflow/stream_executor/cuda:cublas_plugin",
+++        "//tensorflow/core/platform/default/build_config:cublas_plugin",
++     ]) + if_cuda_or_rocm([
++         ":gpu_utils",
++     ]),
++@@ -3637,7 +3637,8 @@ cc_library(
++         "//tensorflow/core:lib",
++         "//tensorflow/core/platform:tensor_float_32_hdr_lib",
++         "//tensorflow/core/util:env_var",
++-        "//tensorflow/stream_executor/cuda:cublas_plugin",
+++        "//tensorflow/stream_executor/cuda:cublas_lt_header",
+++        "//tensorflow/core/platform/default/build_config:cublas_plugin",
++     ]) + if_static(["//tensorflow/core/platform:tensor_float_32_utils"]),
++ )
++ 
 +diff --git a/tensorflow/core/profiler/utils/xplane_utils.cc b/tensorflow/core/profiler/utils/xplane_utils.cc
-+index f66546236c1..3c7316bdd90 100644
++index 801d1b3ff1a..2294a6a0f90 100644
 +--- a/tensorflow/core/profiler/utils/xplane_utils.cc
 ++++ b/tensorflow/core/profiler/utils/xplane_utils.cc
-+@@ -104,7 +104,8 @@ const XPlane* FindPlaneWithName(const XSpace& space, absl::string_view name) {
++@@ -138,7 +138,8 @@ const XPlane* FindPlaneWithName(const XSpace& space, absl::string_view name) {
 + 
 + std::vector<const XPlane*> FindPlanesWithNames(
 +     const XSpace& space, const std::vector<absl::string_view>& names) {
@@ -74,7 +139,7 @@ index 00000000..7ff9595a
 +       FindAll(space.planes(), [&names_set](const XPlane* plane) {
 +         return names_set.contains(plane->name());
 +diff --git a/tensorflow/python/lib/core/ndarray_tensor.cc b/tensorflow/python/lib/core/ndarray_tensor.cc
-+index 6db74a943f7..c434ccf2970 100644
++index 097ecf683ea..9206f610057 100644
 +--- a/tensorflow/python/lib/core/ndarray_tensor.cc
 ++++ b/tensorflow/python/lib/core/ndarray_tensor.cc
 +@@ -16,7 +16,7 @@ limitations under the License.
@@ -86,11 +151,277 @@ index 00000000..7ff9595a
 + 
 + #include "tensorflow/c/eager/tfe_context_internal.h"
 + #include "tensorflow/c/tf_tensor_internal.h"
++diff --git a/tensorflow/stream_executor/cuda/BUILD b/tensorflow/stream_executor/cuda/BUILD
++index 4d6a692f4fe..94a243907f6 100644
++--- a/tensorflow/stream_executor/cuda/BUILD
+++++ b/tensorflow/stream_executor/cuda/BUILD
++@@ -2,7 +2,7 @@
++ #   CUDA-platform specific StreamExecutor support code.
++ 
++ load("//tensorflow:tensorflow.bzl", "tf_cc_test", "tf_copts", "tf_cuda_cc_test")
++-load("//tensorflow:tensorflow.bzl", "filegroup")
+++load("//tensorflow:tensorflow.bzl", "check_deps", "filegroup")
++ load(
++     "//tensorflow/stream_executor:build_defs.bzl",
++     "stream_executor_friends",
++@@ -260,6 +260,18 @@ alias(
++     visibility = ["//visibility:public"],
++ )
++ 
+++cc_library(
+++    name = "cublas_lt_header",
+++    hdrs = [
+++        "cuda_blas_lt.h",
+++        "cuda_blas_utils.h",
+++    ],
+++    visibility = ["//visibility:public"],
+++    deps = [
+++        "//tensorflow/stream_executor/platform",
+++    ],
+++)
+++
++ cc_library(
++     name = "cublas_lt_stub",
++     srcs = if_cuda_is_configured(["cublasLt_stub.cc"]),
++@@ -689,6 +701,30 @@ cc_library(
++     alwayslink = 1,
++ )
++ 
+++# To avoid duplication, check that the C++ or python library does not depend on
+++# the stream executor cuda plugins. Targets that want to use cuda APIs should
+++# instead depend on the dummy plugins in //tensorflow/core/platform/default/build_config
+++# and use header only targets.
+++check_deps(
+++    name = "cuda_plugins_check_deps",
+++    disallowed_deps = if_static(
+++        [],
+++        otherwise = [
+++            ":all_runtime",
+++            ":cuda_driver",
+++            ":cuda_platform",
+++            ":cudnn_plugin",
+++            ":cufft_plugin",
+++            ":curand_plugin",
+++            "//tensorflow/stream_executor:cuda_platform",
+++        ],
+++    ),
+++    deps = [
+++        "//tensorflow:tensorflow_cc",
+++        "//tensorflow/python:pywrap_tensorflow_internal",
+++    ],
+++)
+++
++ tf_cuda_cc_test(
++     name = "redzone_allocator_test",
++     srcs = ["redzone_allocator_test.cc"],
++diff --git a/tensorflow/stream_executor/cuda/cublas_11_0.inc b/tensorflow/stream_executor/cuda/cublas_11_0.inc
++index ebc4ec29693..d287a91c562 100644
++--- a/tensorflow/stream_executor/cuda/cublas_11_0.inc
+++++ b/tensorflow/stream_executor/cuda/cublas_11_0.inc
++@@ -1,7 +1,6 @@
++ // Auto-generated, do not edit.
++ 
++ extern "C" {
++-
++ cublasStatus_t CUBLASWINAPI cublasCreate_v2(cublasHandle_t *handle) {
++   using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(cublasHandle_t *);
++   static auto func_ptr = LoadSymbol<FuncPtr>("cublasCreate_v2");
++@@ -119,6 +118,36 @@ cublasStatus_t CUBLASWINAPI cublasSetMathMode(cublasHandle_t handle,
++   return func_ptr(handle, mode);
++ }
++ 
+++cublasStatus_t CUBLASWINAPI cublasGetSmCountTarget(cublasHandle_t handle,
+++                                                   int *smCountTarget) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(cublasHandle_t, int *);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasGetSmCountTarget");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, smCountTarget);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasSetSmCountTarget(cublasHandle_t handle,
+++                                                   int smCountTarget) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(cublasHandle_t, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasSetSmCountTarget");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, smCountTarget);
+++}
+++
+++const char *CUBLASWINAPI cublasGetStatusName(cublasStatus_t status) {
+++  using FuncPtr = const char *(CUBLASWINAPI *)(cublasStatus_t);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasGetStatusName");
+++  if (!func_ptr) return "cublasGetStatusName symbol not found.";
+++  return func_ptr(status);
+++}
+++
+++const char *CUBLASWINAPI cublasGetStatusString(cublasStatus_t status) {
+++  using FuncPtr = const char *(CUBLASWINAPI *)(cublasStatus_t);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasGetStatusString");
+++  if (!func_ptr) return "cublasGetStatusString symbol not found.";
+++  return func_ptr(status);
+++}
+++
++ cublasStatus_t CUBLASWINAPI cublasLoggerConfigure(int logIsOn, int logToStdOut,
++                                                   int logToStdErr,
++                                                   const char *logFileName) {
++@@ -1976,6 +2005,141 @@ cublasZhpr2_v2(cublasHandle_t handle, cublasFillMode_t uplo, int n,
++   return func_ptr(handle, uplo, n, alpha, x, incx, y, incy, AP);
++ }
++ 
+++cublasStatus_t CUBLASWINAPI cublasSgemvBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const float *alpha, /* host or device pointer */
+++    const float *const Aarray[], int lda, const float *const xarray[], int incx,
+++    const float *beta, /* host or device pointer */
+++    float *const yarray[], int incy, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const float *,
+++      const float *const[], int, const float *const[], int, const float *,
+++      float *const[], int, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasSgemvBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, Aarray, lda, xarray, incx, beta,
+++                  yarray, incy, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasDgemvBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const double *alpha, /* host or device pointer */
+++    const double *const Aarray[], int lda, const double *const xarray[],
+++    int incx, const double *beta, /* host or device pointer */
+++    double *const yarray[], int incy, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const double *,
+++      const double *const[], int, const double *const[], int, const double *,
+++      double *const[], int, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasDgemvBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, Aarray, lda, xarray, incx, beta,
+++                  yarray, incy, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasCgemvBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const cuComplex *alpha, /* host or device pointer */
+++    const cuComplex *const Aarray[], int lda, const cuComplex *const xarray[],
+++    int incx, const cuComplex *beta, /* host or device pointer */
+++    cuComplex *const yarray[], int incy, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const cuComplex *,
+++      const cuComplex *const[], int, const cuComplex *const[], int,
+++      const cuComplex *, cuComplex *const[], int, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasCgemvBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, Aarray, lda, xarray, incx, beta,
+++                  yarray, incy, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI
+++cublasZgemvBatched(cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++                   const cuDoubleComplex *alpha, /* host or device pointer */
+++                   const cuDoubleComplex *const Aarray[], int lda,
+++                   const cuDoubleComplex *const xarray[], int incx,
+++                   const cuDoubleComplex *beta, /* host or device pointer */
+++                   cuDoubleComplex *const yarray[], int incy, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const cuDoubleComplex *,
+++      const cuDoubleComplex *const[], int, const cuDoubleComplex *const[], int,
+++      const cuDoubleComplex *, cuDoubleComplex *const[], int, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasZgemvBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, Aarray, lda, xarray, incx, beta,
+++                  yarray, incy, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasSgemvStridedBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const float *alpha,                             /* host or device pointer */
+++    const float *A, int lda, long long int strideA, /* purposely signed */
+++    const float *x, int incx, long long int stridex,
+++    const float *beta, /* host or device pointer */
+++    float *y, int incy, long long int stridey, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const float *, const float *,
+++      int, long long, const float *, int, long long, const float *, float *,
+++      int, long long, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasSgemvStridedBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, A, lda, strideA, x, incx, stridex,
+++                  beta, y, incy, stridey, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasDgemvStridedBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const double *alpha, /* host or device pointer */
+++    const double *A, int lda, long long int strideA, /* purposely signed */
+++    const double *x, int incx, long long int stridex,
+++    const double *beta, /* host or device pointer */
+++    double *y, int incy, long long int stridey, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const double *,
+++      const double *, int, long long, const double *, int, long long,
+++      const double *, double *, int, long long, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasDgemvStridedBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, A, lda, strideA, x, incx, stridex,
+++                  beta, y, incy, stridey, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasCgemvStridedBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const cuComplex *alpha, /* host or device pointer */
+++    const cuComplex *A, int lda, long long int strideA, /* purposely signed */
+++    const cuComplex *x, int incx, long long int stridex,
+++    const cuComplex *beta, /* host or device pointer */
+++    cuComplex *y, int incy, long long int stridey, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const cuComplex *,
+++      const cuComplex *, int, long long, const cuComplex *, int, long long,
+++      const cuComplex *, cuComplex *, int, long long, int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasCgemvStridedBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, A, lda, strideA, x, incx, stridex,
+++                  beta, y, incy, stridey, batchCount);
+++}
+++
+++cublasStatus_t CUBLASWINAPI cublasZgemvStridedBatched(
+++    cublasHandle_t handle, cublasOperation_t trans, int m, int n,
+++    const cuDoubleComplex *alpha, /* host or device pointer */
+++    const cuDoubleComplex *A, int lda,
+++    long long int strideA, /* purposely signed */
+++    const cuDoubleComplex *x, int incx, long long int stridex,
+++    const cuDoubleComplex *beta, /* host or device pointer */
+++    cuDoubleComplex *y, int incy, long long int stridey, int batchCount) {
+++  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+++      cublasHandle_t, cublasOperation_t, int, int, const cuDoubleComplex *,
+++      const cuDoubleComplex *, int, long long, const cuDoubleComplex *, int,
+++      long long, const cuDoubleComplex *, cuDoubleComplex *, int, long long,
+++      int);
+++  static auto func_ptr = LoadSymbol<FuncPtr>("cublasZgemvStridedBatched");
+++  if (!func_ptr) return GetSymbolNotFoundError();
+++  return func_ptr(handle, trans, m, n, alpha, A, lda, strideA, x, incx, stridex,
+++                  beta, y, incy, stridey, batchCount);
+++}
+++
++ cublasStatus_t CUBLASWINAPI cublasSgemm_v2(
++     cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
++     int m, int n, int k, const float *alpha, /* host or device pointer */
++@@ -5030,11 +5194,4 @@ void CUBLASWINAPI cublasZtrmm(char side, char uplo, char transa, char diag,
++   return func_ptr(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
++ }
++ 
++-CUBLASAPI const char* CUBLASWINAPI cublasGetStatusString(cublasStatus_t status) {
++-  using FuncPtr = const char*(CUBLASWINAPI *)(cublasStatus_t);
++-  static auto func_ptr = LoadSymbol<FuncPtr>("cublasGetStatusString");
++-  if (!func_ptr) LogFatalSymbolNotFound("cublasGetStatusString");
++-  return func_ptr(status);
++-}
++-
++ }  // extern "C"
 +diff --git a/tensorflow/tensorflow.bzl b/tensorflow/tensorflow.bzl
-+index 68db11425f3..df72bb1ce83 100644
++index 69d452836d5..2ae11595378 100644
 +--- a/tensorflow/tensorflow.bzl
 ++++ b/tensorflow/tensorflow.bzl
-+@@ -1149,6 +1149,7 @@ def tf_gen_op_wrappers_cc(
++@@ -1162,6 +1162,7 @@ def tf_gen_op_wrappers_cc(
 +             clean_dep("//tensorflow/core:portable_tensorflow_lib"),
 +         ]),
 +         copts = tf_copts(),
@@ -98,7 +429,7 @@ index 00000000..7ff9595a
 +         alwayslink = 1,
 +         visibility = visibility,
 +         compatible_with = compatible_with,
-+@@ -1167,6 +1168,7 @@ def tf_gen_op_wrappers_cc(
++@@ -1180,6 +1181,7 @@ def tf_gen_op_wrappers_cc(
 +             clean_dep("//tensorflow/core:portable_tensorflow_lib"),
 +         ]),
 +         copts = tf_copts(),
@@ -107,10 +438,10 @@ index 00000000..7ff9595a
 +         visibility = [clean_dep("//tensorflow:internal")],
 +         compatible_with = compatible_with,
 +diff --git a/tensorflow/workspace2.bzl b/tensorflow/workspace2.bzl
-+index c9d2c75ab17..4804d4a3c01 100644
++index e255103df98..a1351145954 100644
 +--- a/tensorflow/workspace2.bzl
 ++++ b/tensorflow/workspace2.bzl
-+@@ -489,6 +489,17 @@ def _tf_repositories():
++@@ -497,6 +497,17 @@ def _tf_repositories():
 +         urls = tf_mirror_urls("https://curl.haxx.se/download/curl-7.84.0.tar.gz"),
 +     )
 + 
@@ -128,7 +459,7 @@ index 00000000..7ff9595a
 +     # WARNING: make sure ncteisen@ and vpai@ are cc-ed on any CL to change the below rule
 +     tf_http_archive(
 +         name = "com_github_grpc_grpc",
-+@@ -546,10 +557,11 @@ def _tf_repositories():
++@@ -554,10 +565,11 @@ def _tf_repositories():
 + 
 +     tf_http_archive(
 +         name = "boringssl",
@@ -145,18 +476,18 @@ index 00000000..7ff9595a
 +     # Note: if you update this, you have to update libpng too. See cl/437813808
 +diff --git a/third_party/boringssl/0001-Added-bazel-build-files.patch b/third_party/boringssl/0001-Added-bazel-build-files.patch
 +new file mode 100644
-+index 00000000000..fb4d52cd48e
++index 00000000000..d2dfca8533f
 +--- /dev/null
 ++++ b/third_party/boringssl/0001-Added-bazel-build-files.patch
-+@@ -0,0 +1,53139 @@
-++From 4844880d1f4d3a0337698e143ebf1157cfae9c64 Mon Sep 17 00:00:00 2001
++@@ -0,0 +1,53140 @@
+++From ddd7f8bd7837a4eab3ca914bbaed9bd90904aa74 Mon Sep 17 00:00:00 2001
 ++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-++Date: Thu, 23 Jun 2022 00:27:59 -0400
+++Date: Tue, 22 Nov 2022 07:39:11 +0000
 ++Subject: [PATCH] Added Bazel Build files
 ++
 ++---
 ++ BUILD                                         |  139 +
-++ BUILD.generated.bzl                           |  567 ++
+++ BUILD.generated.bzl                           |  568 ++
 ++ err_data.c                                    | 1475 +++
 ++ linux-ppc64le/ypto/fipsmodule/aesp8-ppc.S     | 3670 +++++++
 ++ linux-ppc64le/ypto/fipsmodule/ghashp8-ppc.S   |  587 ++
@@ -180,7 +511,7 @@ index 00000000..7ff9595a
 ++ linux-x86_64/ypto/fipsmodule/x86_64-mont.S    | 1260 +++
 ++ linux-x86_64/ypto/fipsmodule/x86_64-mont5.S   | 3790 +++++++
 ++ linux-x86_64/ypto/test/trampoline-x86_64.S    |  518 +
-++ 25 files changed, 52928 insertions(+)
+++ 25 files changed, 52929 insertions(+)
 ++ create mode 100644 BUILD
 ++ create mode 100644 BUILD.generated.bzl
 ++ create mode 100644 err_data.c
@@ -354,10 +685,10 @@ index 00000000..7ff9595a
 +++)
 ++diff --git a/BUILD.generated.bzl b/BUILD.generated.bzl
 ++new file mode 100644
-++index 000000000..f146c2755
+++index 000000000..422ac8b74
 ++--- /dev/null
 +++++ b/BUILD.generated.bzl
-++@@ -0,0 +1,567 @@
+++@@ -0,0 +1,568 @@
 +++# This file is created by generate_build_files.py. Do not edit manually.
 +++
 +++ssl_headers = [
@@ -655,6 +986,7 @@ index 00000000..7ff9595a
 +++    "crypto/asn1/time_support.c",
 +++    "crypto/base64/base64.c",
 +++    "crypto/bio/bio.c",
++++    "decrepit/bio/base64_bio.c",
 +++    "crypto/bio/bio_mem.c",
 +++    "crypto/bio/connect.c",
 +++    "crypto/bio/fd.c",
@@ -927,7 +1259,7 @@ index 00000000..7ff9595a
 +++
 ++diff --git a/err_data.c b/err_data.c
 ++new file mode 100644
-++index 000000000..6a7ee066a
+++index 000000000..7657d868a
 ++--- /dev/null
 +++++ b/err_data.c
 ++@@ -0,0 +1,1475 @@
@@ -53286,83 +53618,13 @@ index 00000000..7ff9595a
 +++#endif
 +++.section	.note.GNU-stack,"",@progbits
 ++-- 
-++2.23.0
+++2.34.1
 ++
-+diff --git a/third_party/cpuinfo/cpuinfo.BUILD b/third_party/cpuinfo/cpuinfo.BUILD
-+index e362682b810..bcb3df89fc5 100644
-+--- a/third_party/cpuinfo/cpuinfo.BUILD
-++++ b/third_party/cpuinfo/cpuinfo.BUILD
-+@@ -109,6 +109,7 @@ cc_library(
-+         ":linux_mips64": COMMON_SRCS + LINUX_SRCS,
-+         ":linux_riscv64": COMMON_SRCS + LINUX_SRCS,
-+         ":linux_s390x": COMMON_SRCS + LINUX_SRCS,
-++        ":linux_ppc64le": COMMON_SRCS + LINUX_SRCS,
-+         ":macos_x86_64": COMMON_SRCS + X86_SRCS + MACH_SRCS + MACH_X86_SRCS,
-+         ":macos_arm64": COMMON_SRCS + MACH_SRCS + MACH_ARM_SRCS,
-+         ":windows_x86_64": COMMON_SRCS + X86_SRCS + WINDOWS_X86_SRCS,
-+@@ -233,6 +234,11 @@ config_setting(
-+     values = {"cpu": "s390x"},
-+ )
-+ 
-++config_setting(
-++    name = "linux_ppc64le",
-++    values = {"cpu": "ppc"},
-++)
-++
-+ config_setting(
-+     name = "macos_x86_64",
-+     values = {
-+diff --git a/third_party/eigen3/eigen.patch b/third_party/eigen3/eigen.patch
-+new file mode 100644
-+index 00000000000..f9740cb5145
-+--- /dev/null
-++++ b/third_party/eigen3/eigen.patch
-+@@ -0,0 +1,28 @@
-++diff -Naur a/unsupported/Eigen/CXX11/src/Tensor/TensorReduction.h b/unsupported/Eigen/CXX11/src/Tensor/TensorReduction.h
-++--- a/unsupported/Eigen/CXX11/src/Tensor/TensorReduction.h
-+++++ b/unsupported/Eigen/CXX11/src/Tensor/TensorReduction.h
-++@@ -815,8 +815,9 @@
-++       const Index firstIndex = firstInput(index);
-++       for (Index i = 0; i < PacketSize; ++i) {
-++         Op reducer(m_reducer);
-++-        values[i] = internal::InnerMostDimReducer<Self, Op>::reduce(*this, firstIndex + i * num_values_to_reduce,
-++-                                                                    num_values_to_reduce, reducer);
-+++        Self::CoeffReturnType a = internal::InnerMostDimReducer<Self, Op>::reduce(*this,
-+++                                       firstIndex + i * num_values_to_reduce, num_values_to_reduce, reducer);
-+++        values[i] = a;
-++       }
-++     } else if (PreservingInnerMostDims) {
-++       const Index firstIndex = firstInput(index);
-++diff -Naur a/unsupported/Eigen/CXX11/src/Tensor/TensorImagePatch.h b/unsupported/Eigen/CXX11/src/Tensor/TensorImagePatch.h
-++--- a/unsupported/Eigen/CXX11/src/Tensor/TensorImagePatch.h
-+++++ b/unsupported/Eigen/CXX11/src/Tensor/TensorImagePatch.h
-++@@ -543,7 +543,8 @@
-++     EIGEN_ALIGN_MAX typename internal::remove_const<CoeffReturnType>::type values[PacketSize];
-++     EIGEN_UNROLL_LOOP
-++     for (int i = 0; i < PacketSize; ++i) {
-++-      values[i] = coeff(index+i);
-+++      Self::CoeffReturnType a = coeff(index+i);
-+++      values[i] = a;
-++     }
-++     PacketReturnType rslt = internal::pload<PacketReturnType>(values);
-++     return rslt;
-+diff --git a/third_party/eigen3/workspace.bzl b/third_party/eigen3/workspace.bzl
-+index 4d327eedb37..d9a5927144a 100644
-+--- a/third_party/eigen3/workspace.bzl
-++++ b/third_party/eigen3/workspace.bzl
-+@@ -15,6 +15,7 @@ def repo():
-+         name = "eigen_archive",
-+         build_file = "//third_party/eigen3:eigen_archive.BUILD",
-+         sha256 = EIGEN_SHA256,
-++        patch_file = ["//third_party/eigen3:eigen.patch"],
-+         strip_prefix = "eigen-{commit}".format(commit = EIGEN_COMMIT),
-+         urls = tf_mirror_urls("https://gitlab.com/libeigen/eigen/-/archive/{commit}/eigen-{commit}.tar.gz".format(commit = EIGEN_COMMIT)),
-+     )
 +diff --git a/third_party/gpus/cuda_configure.bzl b/third_party/gpus/cuda_configure.bzl
-+index ed8ba3d5205..5f40e667ea5 100644
++index 1428dc8883f..10d63c0ac50 100644
 +--- a/third_party/gpus/cuda_configure.bzl
 ++++ b/third_party/gpus/cuda_configure.bzl
-+@@ -1206,10 +1206,12 @@ def _create_local_cuda_repository(repository_ctx):
++@@ -1211,10 +1211,12 @@ def _create_local_cuda_repository(repository_ctx):
 +     # TODO: when bazel stops adding '-B/usr/bin' by default, remove this
 +     #       flag from the CROSSTOOL completely (see
 +     #       https://github.com/bazelbuild/bazel/issues/5634)
@@ -53439,48 +53701,6 @@ index 00000000..7ff9595a
 ++-- 
 ++2.34.1
 ++
-+diff --git a/third_party/llvm/fix_ppc64le.patch b/third_party/llvm/fix_ppc64le.patch
-+new file mode 100644
-+index 00000000000..3ed53b48164
-+--- /dev/null
-++++ b/third_party/llvm/fix_ppc64le.patch
-+@@ -0,0 +1,24 @@
-++From dffd421dd8a2410598f0053678f4c0bb9714daf9 Mon Sep 17 00:00:00 2001
-++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-++Date: Mon, 21 Mar 2022 08:14:31 -0400
-++Subject: [PATCH] Fix build on ppc64le
-++
-++---
-++ utils/bazel/llvm-project-overlay/llvm/config.bzl | 1 +
-++ 1 file changed, 1 insertion(+)
-++
-++diff --git a/utils/bazel/llvm-project-overlay/llvm/config.bzl b/utils/bazel/llvm-project-overlay/llvm/config.bzl
-++index 772714f38941..9ed63e8d44a3 100644
-++--- a/utils/bazel/llvm-project-overlay/llvm/config.bzl
-+++++ b/utils/bazel/llvm-project-overlay/llvm/config.bzl
-++@@ -86,6 +86,7 @@ llvm_config_defines = os_defines + select({
-++     "//llvm:macos_arm64": native_arch_defines("AArch64", "arm64-apple-darwin"),
-++     "@bazel_tools//src/conditions:darwin": native_arch_defines("X86", "x86_64-unknown-darwin"),
-++     "@bazel_tools//src/conditions:linux_aarch64": native_arch_defines("AArch64", "aarch64-unknown-linux-gnu"),
-+++    "@bazel_tools//src/conditions:linux_ppc64le": native_arch_defines("PowerPC", "powerpc64le-unknown-linux-gnu"),
-++     "//conditions:default": native_arch_defines("X86", "x86_64-unknown-linux-gnu"),
-++ }) + [
-++     # These shouldn't be needed by the C++11 standard, but are for some
-++-- 
-++2.23.0
-++
-+diff --git a/third_party/llvm/workspace.bzl b/third_party/llvm/workspace.bzl
-+index 82d0f71ccbd..e619c12ad17 100644
-+--- a/third_party/llvm/workspace.bzl
-++++ b/third_party/llvm/workspace.bzl
-+@@ -16,6 +16,6 @@ def repo(name):
-+             "https://github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT),
-+         ],
-+         build_file = "//third_party/llvm:llvm.BUILD",
-+-        patch_file = ["//third_party/llvm:macos_build_fix.patch"],
-++        patch_file = ["//third_party/llvm:macos_build_fix.patch", "//third_party/llvm:fix_ppc64le.patch"],
-+         link_files = {"//third_party/llvm:run_lit.sh": "mlir/run_lit.sh"},
-+     )
 +diff --git a/third_party/systemlibs/sqlite.BUILD b/third_party/systemlibs/sqlite.BUILD
 +index 88a84a96137..31fc5ed5e88 100644
 +--- a/third_party/systemlibs/sqlite.BUILD
@@ -53549,8 +53769,8 @@ index 00000000..7ff9595a
 +     library_dir = config["tensorrt_library_dir"] + "/"
 +     headers = _get_tensorrt_headers(trt_version)
 +-- 
-+2.23.0
++2.34.1
 +
 -- 
-2.23.0
+2.34.1
 
