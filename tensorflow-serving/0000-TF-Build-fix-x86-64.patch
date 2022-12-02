@@ -1,7 +1,7 @@
-From 061b895468e77d4360848fa954053c0d0a4de8d5 Mon Sep 17 00:00:00 2001
+From 2c0fa57e5344a0b22261da6d73ba726d325a30dd Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Wed, 21 Sep 2022 06:31:34 -0500
-Subject: [PATCH] TF Serving fixed on x86
+Date: Fri, 2 Dec 2022 05:36:35 +0000
+Subject: [PATCH] TF Serving fixed for x86
 
 ---
  WORKSPACE                                     |     1 +
@@ -12,13 +12,13 @@ Subject: [PATCH] TF Serving fixed on x86
  create mode 100644 third_party/tensorflow/TF-Build-fix-x86-64.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 533a73b7..20777b7d 100644
+index b0d225a3..34b4cce6 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -17,6 +17,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "cd6db9301e3537ced2ea3b2c2ef7671e1134e4dd5ed2617b79ff1ddc864c1d62",
-     git_commit = "18960c44ad3f5219c22dca55f842912dbce78a07",
+     sha256 = "cbed52f7f29fb4eaec3cb146f4aba4f622fdf3d3471c88cdf787428005a854c6",
+     git_commit = "a5ed5f39b675a1c6f315e0caf3ad4b38478fa571",
 +    patch = "//third_party/tensorflow:TF-Build-fix-x86-64.patch",
  )
  
@@ -53552,5 +53552,5 @@ index 00000000..7ff9595a
 +2.23.0
 +
 -- 
-2.23.0
+2.34.1
 
