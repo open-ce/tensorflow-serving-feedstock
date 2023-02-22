@@ -16,6 +16,7 @@
 # *****************************************************************
 
 set -vex
+source open-ce-common-utils.sh
 
 SCRIPT_DIR=$RECIPE_DIR/../buildscripts
 
@@ -60,8 +61,6 @@ if [ "${build_type}" = "mkl" ]; then
 fi
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PREFIX}/lib
-bazel clean --expunge
-bazel shutdown
 
 # On x86, use of new compilers (gcc8) gives "ModuleNotFoundError: No module named '_sysconfigdata_x86_64_conda_linux_gnu'"# This is due to the target triple difference with which python and conda-build are built. Below is the work around to this problem.
 # Conda-forge's python-feedstock has a patch https://github.com/conda-forge/python-feedstock/blob/master/recipe/patches/0010-Add-support-for-_CONDA_PYTHON_SYSCONFIGDATA_NAME-if-.patch which may address this problem.
@@ -91,5 +90,6 @@ then
     rm $PREFIX/g++
 fi
 
-bazel clean --expunge
-bazel shutdown
+PID=$(bazel info server_pid)
+echo "PID: $PID"
+cleanup_bazel $PID
