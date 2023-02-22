@@ -1,6 +1,6 @@
 #!/bin/bash
 # *****************************************************************
-# (C) Copyright IBM Corp. 2019, 2021. All Rights Reserved.
+# (C) Copyright IBM Corp. 2019, 2023. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,7 @@
 # *****************************************************************
 set -vex
 
-bazel clean --expunge
-bazel shutdown
+source open-ce-common-utils.sh
 
 if [[ $ppc_arch == "p10" ]]
 then
@@ -57,5 +56,6 @@ then
     rm $PREFIX/g++
 fi
 
-bazel clean --expunge
-bazel shutdown
+PID=$(bazel info server_pid)
+echo "PID: $PID"
+cleanup_bazel $PID
