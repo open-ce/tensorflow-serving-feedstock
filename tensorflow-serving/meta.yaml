@@ -1,4 +1,4 @@
-{% set version = "2.10.1" %}
+{% set version = "2.12.1" %}
 
 package:
    name: tensorflow-serving
@@ -26,7 +26,7 @@ requirements:
    - automake
    - libtool
    - make
-   - git >={{ git }}
+   - git {{ git }}
    - patch
   host:
    - libevent {{ libevent }}
