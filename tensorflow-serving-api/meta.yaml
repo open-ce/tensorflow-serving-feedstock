@@ -27,11 +27,11 @@ requirements:
    - python # noarch package; don't tie to specific python version
    - numpy {{ numpy }}
    - grpcio {{ grpcio }}
-   - protobuf 3.9 # currently tf-serving only works with pb 3.9
+   - protobuf {{ protobuf }}
   run:
    - python # noarch package; don't tie to specific python version
    - grpcio {{ grpcio }}
-   - protobuf 3.9 # currently tf-serving only works with pb 3.9
+   - protobuf {{ protobuf }}
 
 about:
   home: https://www.tensorflow.org/tfx/guide/serving

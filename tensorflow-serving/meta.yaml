@@ -41,7 +41,7 @@ requirements:
   run:
    - libevent {{ libevent }}
    - grpcio {{ grpcio }}
-   - protobuf 3.9                    # currently tf-serving only works with pb 3.9
+   - protobuf {{ protobuf }}
    - cudatoolkit {{ cudatoolkit }}   # [build_type == 'cuda']
    - cudnn {{ cudnn }}               # [build_type == 'cuda']
    - nccl {{ nccl }}                 # [build_type == 'cuda']
