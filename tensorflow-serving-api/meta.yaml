@@ -1,4 +1,4 @@
-{% set version = "2.10.1" %}
+{% set version = "2.12.1" %}
 
 package:
    name: tensorflow-serving-api
@@ -9,7 +9,7 @@ source:
    git_rev: {{ version }}
    patches:
      - 0001-Replace-k8-with-ppc-for-Power-builds.patch # [ppc64le]
-     - 0001-TF-Build-fix-ppc64le.patch                 # [ppc64le and ppc_arch == 'p10']
+     - 0001-TF-Build-fixed.patch                 # [ppc64le and ppc_arch == 'p10']
 
 build:
   number: 1

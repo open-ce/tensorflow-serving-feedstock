@@ -1,4 +1,4 @@
-{% set version = "2.10.1" %}
+{% set version = "2.12.1" %}
 
 package:
    name: tensorflow-serving
@@ -8,8 +8,7 @@ source:
    git_url: https://github.com/tensorflow/serving.git
    git_rev: {{ version }}
    patches:
-     - 0000-TF-Build-fix-x86-64.patch       # [x86_64]
-     - 0001-TF-Build-fix-ppc64le.patch      # [ppc64le]
+     - 0001-TF-Build-fixed.patch
  
 build:
   number: 1
@@ -26,7 +25,7 @@ requirements:
    - automake
    - libtool
    - make
-   - git >={{ git }}
+   - git {{ git }}
    - patch
   host:
    - libevent {{ libevent }}
