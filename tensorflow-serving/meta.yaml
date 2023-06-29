@@ -9,6 +9,7 @@ source:
    git_rev: {{ version }}
    patches:
      - 0001-TF-Build-fixed.patch
+     - 0001-Fix-P10-build.patch      #[ppc_arch == "p10"]
  
 build:
   number: 1

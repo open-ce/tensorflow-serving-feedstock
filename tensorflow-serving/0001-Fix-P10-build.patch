@@ -1,0 +1,69 @@
+From f376f7287d896bc7155953e942acc6ac45dec5fe Mon Sep 17 00:00:00 2001
+From: Nishidha Panpaliya <npanpa23@in.ibm.com>
+Date: Wed, 28 Jun 2023 23:30:17 -0500
+Subject: [PATCH] Suppress error for P10
+
+---
+ tensorflow_serving/workspace.bzl     |  2 ++
+ third_party/ydf/BUILD                |  0
+ third_party/ydf/suppress_error.patch | 31 ++++++++++++++++++++++++++++
+ 3 files changed, 33 insertions(+)
+ create mode 100644 third_party/ydf/BUILD
+ create mode 100644 third_party/ydf/suppress_error.patch
+
+diff --git a/tensorflow_serving/workspace.bzl b/tensorflow_serving/workspace.bzl
+index c7e6c185..839fc0eb 100644
+--- a/tensorflow_serving/workspace.bzl
++++ b/tensorflow_serving/workspace.bzl
+@@ -117,6 +117,8 @@ def tf_serving_workspace():
+         sha256 = "5abb2e440c0b8b13095bd208cfab3a5e569706af9a52b6a702d86ec0e25a7991",
+         strip_prefix = "yggdrasil-decision-forests-1.4.0",
+         urls = ["https://github.com/google/yggdrasil-decision-forests/archive/refs/tags/1.4.0.zip"],
++        patches = ["//third_party/ydf:suppress_error.patch"],
++        patch_args = ["-p1"],
+     )
+ 
+     # The Boost repo is organized into git sub-modules (see the list at
+diff --git a/third_party/ydf/BUILD b/third_party/ydf/BUILD
+new file mode 100644
+index 00000000..e69de29b
+diff --git a/third_party/ydf/suppress_error.patch b/third_party/ydf/suppress_error.patch
+new file mode 100644
+index 00000000..f0c2fbf7
+--- /dev/null
++++ b/third_party/ydf/suppress_error.patch
+@@ -0,0 +1,31 @@
++From 030fa3a838c5118fbaa0f1bf9c3858c124f149fb Mon Sep 17 00:00:00 2001
++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
++Date: Wed, 28 Jun 2023 11:11:18 +0000
++Subject: [PATCH] Suppress error for P10
++
++---
++ .../serving/decision_forest/quick_scorer_extended.cc          | 4 ++--
++ 1 file changed, 2 insertions(+), 2 deletions(-)
++
++diff --git a/yggdrasil_decision_forests/serving/decision_forest/quick_scorer_extended.cc b/yggdrasil_decision_forests/serving/decision_forest/quick_scorer_extended.cc
++index 15660b0..726a130 100644
++--- a/yggdrasil_decision_forests/serving/decision_forest/quick_scorer_extended.cc
+++++ b/yggdrasil_decision_forests/serving/decision_forest/quick_scorer_extended.cc
++@@ -866,12 +866,12 @@ absl::Status BaseGenericToSpecializedModel(const AbstractModel& src,
++   // a fatal error will be raised.
++   dst->cpu_supports_avx2 = true;
++ #endif
++-#elif ABSL_HAVE_BUILTIN(__builtin_cpu_supports)
+++/*#elif ABSL_HAVE_BUILTIN(__builtin_cpu_supports)
++   if (__builtin_cpu_supports("avx2")) {
++     LOG_INFO_EVERY_N_SEC(
++         30, _ << "The binary was compiled without AVX2 support, but your CPU "
++                  "supports it. Enable it for faster model inference.");
++-  }
+++  }*/
++ #endif
++ 
++   if (src.task() != CompiledModel::kTask) {
++-- 
++2.40.1
++
+-- 
+2.34.1
+
