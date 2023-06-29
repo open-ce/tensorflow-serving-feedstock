@@ -1,12 +1,14 @@
-From 92a962be7a2590e19be4a804e3a1b8c259395a0b Mon Sep 17 00:00:00 2001
+From f376f7287d896bc7155953e942acc6ac45dec5fe Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Wed, 28 Jun 2023 11:16:19 +0000
-Subject: [PATCH] Fix P10 build
+Date: Wed, 28 Jun 2023 23:30:17 -0500
+Subject: [PATCH] Suppress error for P10
 
 ---
  tensorflow_serving/workspace.bzl     |  2 ++
+ third_party/ydf/BUILD                |  0
  third_party/ydf/suppress_error.patch | 31 ++++++++++++++++++++++++++++
- 2 files changed, 33 insertions(+)
+ 3 files changed, 33 insertions(+)
+ create mode 100644 third_party/ydf/BUILD
  create mode 100644 third_party/ydf/suppress_error.patch
 
 diff --git a/tensorflow_serving/workspace.bzl b/tensorflow_serving/workspace.bzl
@@ -22,6 +24,9 @@ index c7e6c185..839fc0eb 100644
      )
  
      # The Boost repo is organized into git sub-modules (see the list at
+diff --git a/third_party/ydf/BUILD b/third_party/ydf/BUILD
+new file mode 100644
+index 00000000..e69de29b
 diff --git a/third_party/ydf/suppress_error.patch b/third_party/ydf/suppress_error.patch
 new file mode 100644
 index 00000000..f0c2fbf7
@@ -60,5 +65,5 @@ index 00000000..f0c2fbf7
 +2.40.1
 +
 -- 
-2.40.1
+2.34.1
 
