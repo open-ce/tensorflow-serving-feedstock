@@ -1,21 +1,37 @@
-From 3864dbce3449fe48997545e6dd03c999441459d7 Mon Sep 17 00:00:00 2001
+From 008bbf4d9d963a95964de1f06c7128ba3e53485e Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Fri, 18 Aug 2023 02:31:23 -0400
+Date: Tue, 22 Aug 2023 05:47:09 +0000
 Subject: [PATCH] TF Build fixed
 
 ---
- WORKSPACE                                     |   1 +
+ WORKSPACE                                     |  10 +
  third_party/tensorflow/BUILD                  |   0
  .../tensorflow/tensorflow_patches.patch       | 400 ++++++++++++++++++
- 3 files changed, 401 insertions(+)
+ 3 files changed, 410 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 1d86ff2c..bbbf7486 100644
+index 1d86ff2c..c9f13172 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
-@@ -26,6 +26,7 @@ tensorflow_http_archive(
+@@ -9,6 +9,15 @@ local_repository(
+     path = "tensorflow_serving/experimental/tensorflow/ops/remote_predict/",
+ )
+ 
++load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
++
++http_archive(
++    name = "boringssl",
++    sha256 = "534fa658bd845fd974b50b10f444d392dfd0d93768c4a51b61263fd37d851c40",
++    strip_prefix = "boringssl-b9232f9e27e5668bc0414879dcdedb2a59ea75f2",
++    urls = ["https://github.com/google/boringssl/archive/b9232f9e27e5668bc0414879dcdedb2a59ea75f2.tar.gz"],
++)
++
+ # ===== TensorFlow dependency =====
+ #
+ # TensorFlow is imported here instead of in tf_serving_workspace() because
+@@ -26,6 +35,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
      sha256 = "a62eba23ebfcf1d6d2d3241f1629b99df576a9f726c439a97c3acd590e71fe62",
      git_commit = "1cb1a030a62b169d90d34c747ab9b09f332bf905",
@@ -433,5 +449,5 @@ index 00000000..7d371f39
 +2.27.0
 +
 -- 
-2.27.0
+2.40.1
 
