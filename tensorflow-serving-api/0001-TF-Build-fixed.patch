@@ -1,24 +1,40 @@
-From cb29186741a84a2f78bcb680f37addf5e79c392b Mon Sep 17 00:00:00 2001
+From 008bbf4d9d963a95964de1f06c7128ba3e53485e Mon Sep 17 00:00:00 2001
 From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Tue, 9 May 2023 08:49:24 -0500
-Subject: [PATCH] TF fixed on ppc64le
+Date: Tue, 22 Aug 2023 05:47:09 +0000
+Subject: [PATCH] TF Build fixed
 
 ---
- WORKSPACE                                     |   1 +
+ WORKSPACE                                     |  10 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/tensorflow_patches.patch       | 413 ++++++++++++++++++
- 3 files changed, 414 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 400 ++++++++++++++++++
+ 3 files changed, 410 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 82ca7f4c..7b03fb88 100644
+index 1d86ff2c..c9f13172 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
-@@ -26,6 +26,7 @@ tensorflow_http_archive(
+@@ -9,6 +9,15 @@ local_repository(
+     path = "tensorflow_serving/experimental/tensorflow/ops/remote_predict/",
+ )
+ 
++load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
++
++http_archive(
++    name = "boringssl",
++    sha256 = "534fa658bd845fd974b50b10f444d392dfd0d93768c4a51b61263fd37d851c40",
++    strip_prefix = "boringssl-b9232f9e27e5668bc0414879dcdedb2a59ea75f2",
++    urls = ["https://github.com/google/boringssl/archive/b9232f9e27e5668bc0414879dcdedb2a59ea75f2.tar.gz"],
++)
++
+ # ===== TensorFlow dependency =====
+ #
+ # TensorFlow is imported here instead of in tf_serving_workspace() because
+@@ -26,6 +35,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "e97c242d13e386192e3a9f60fd674461b6595b02b3a2a48edd6fb11aeee7e038",
-     git_commit = "0db597d0d758aba578783b5bf46c889700a45085",
+     sha256 = "a62eba23ebfcf1d6d2d3241f1629b99df576a9f726c439a97c3acd590e71fe62",
+     git_commit = "1cb1a030a62b169d90d34c747ab9b09f332bf905",
 +    patch = "//third_party/tensorflow:tensorflow_patches.patch",
  )
  
@@ -28,14 +44,14 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..414098f7
+index 00000000..7d371f39
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,413 @@
-+From b523c9b0b603ffaf1f1bd7abba7a4d704d26b427 Mon Sep 17 00:00:00 2001
+@@ -0,0 +1,400 @@
++From f48affcdac37f007ad221822cfffb2502b3002f7 Mon Sep 17 00:00:00 2001
 +From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Tue, 9 May 2023 08:48:32 -0500
-+Subject: [PATCH] TF Patches
++Date: Fri, 18 Aug 2023 02:30:41 -0400
++Subject: [PATCH] TF patches
 +
 +---
 + tensorflow/python/lib/core/ndarray_tensor.cc  |  2 +-
@@ -46,15 +62,14 @@ index 00000000..414098f7
 + third_party/gpus/cuda_configure.bzl           | 41 +++++++++++--
 + third_party/grpc/generate_cc_env_fix.patch    | 60 ++++++++++++++++++-
 + third_party/grpc/upb_gcc10.patch              | 54 +++++++++++++++++
-+ third_party/jpeg/jpeg.BUILD                   |  1 +
 + third_party/systemlibs/sqlite.BUILD           | 27 ++++++++-
 + third_party/tensorrt/BUILD.tpl                |  1 +
 + third_party/tensorrt/tensorrt_configure.bzl   |  2 +
-+ 12 files changed, 203 insertions(+), 9 deletions(-)
++ 11 files changed, 202 insertions(+), 9 deletions(-)
 + create mode 100644 third_party/grpc/upb_gcc10.patch
 +
 +diff --git a/tensorflow/python/lib/core/ndarray_tensor.cc b/tensorflow/python/lib/core/ndarray_tensor.cc
-+index bab9e41b90b..092b5364984 100644
++index 461918e25cd..849db78c33b 100644
 +--- a/tensorflow/python/lib/core/ndarray_tensor.cc
 ++++ b/tensorflow/python/lib/core/ndarray_tensor.cc
 +@@ -20,7 +20,7 @@ limitations under the License.
@@ -67,10 +82,10 @@ index 00000000..414098f7
 + #include "tensorflow/c/eager/tfe_context_internal.h"
 + #include "tensorflow/c/tf_tensor_internal.h"
 +diff --git a/tensorflow/tensorflow.bzl b/tensorflow/tensorflow.bzl
-+index 115ff76b414..ce71bac7255 100644
++index e9f5e5aaffa..29d9b41b666 100644
 +--- a/tensorflow/tensorflow.bzl
 ++++ b/tensorflow/tensorflow.bzl
-+@@ -1202,6 +1202,7 @@ def tf_gen_op_wrappers_cc(
++@@ -1204,6 +1204,7 @@ def tf_gen_op_wrappers_cc(
 +             clean_dep("//tensorflow/core:portable_tensorflow_lib"),
 +         ]),
 +         copts = tf_copts(),
@@ -78,7 +93,7 @@ index 00000000..414098f7
 +         alwayslink = 1,
 +         visibility = visibility,
 +         compatible_with = compatible_with,
-+@@ -1220,6 +1221,7 @@ def tf_gen_op_wrappers_cc(
++@@ -1222,6 +1223,7 @@ def tf_gen_op_wrappers_cc(
 +             clean_dep("//tensorflow/core:portable_tensorflow_lib"),
 +         ]),
 +         copts = tf_copts(),
@@ -87,7 +102,7 @@ index 00000000..414098f7
 +         visibility = [clean_dep("//tensorflow:internal")],
 +         compatible_with = compatible_with,
 +diff --git a/tensorflow/tsl/profiler/utils/xplane_utils.cc b/tensorflow/tsl/profiler/utils/xplane_utils.cc
-+index 24226af2746..ba47c30d12c 100644
++index 9fd81bb7a32..e0da8d27bde 100644
 +--- a/tensorflow/tsl/profiler/utils/xplane_utils.cc
 ++++ b/tensorflow/tsl/profiler/utils/xplane_utils.cc
 +@@ -146,7 +146,8 @@ const XPlane* FindPlaneWithName(const XSpace& space, absl::string_view name) {
@@ -101,11 +116,11 @@ index 00000000..414098f7
 +       FindAll(space.planes(), [&names_set](const XPlane* plane) {
 +         return names_set.contains(plane->name());
 +diff --git a/tensorflow/workspace2.bzl b/tensorflow/workspace2.bzl
-+index 1261273bc92..ed356f7f6ca 100644
++index da9295adaba..f4302272a3c 100644
 +--- a/tensorflow/workspace2.bzl
 ++++ b/tensorflow/workspace2.bzl
-+@@ -506,6 +506,17 @@ def _tf_repositories():
-+         urls = tf_mirror_urls("https://curl.haxx.se/download/curl-7.88.0.tar.gz"),
++@@ -512,6 +512,17 @@ def _tf_repositories():
++         urls = tf_mirror_urls("https://curl.haxx.se/download/curl-8.0.1.tar.gz"),
 +     )
 + 
 ++    tf_http_archive(
@@ -361,18 +376,6 @@ index 00000000..414098f7
 ++-- 
 ++2.34.1
 ++
-+diff --git a/third_party/jpeg/jpeg.BUILD b/third_party/jpeg/jpeg.BUILD
-+index 8b3f9f0b401..4549491ac4d 100644
-+--- a/third_party/jpeg/jpeg.BUILD
-++++ b/third_party/jpeg/jpeg.BUILD
-+@@ -142,6 +142,7 @@ cc_library(
-+     srcs = [
-+         "jchuff.h",
-+         "jconfig.h",
-++        "jconfigint.h",
-+         "jdct.h",
-+         "jerror.h",
-+         "jinclude.h",
 +diff --git a/third_party/systemlibs/sqlite.BUILD b/third_party/systemlibs/sqlite.BUILD
 +index 88a84a96137..31fc5ed5e88 100644
 +--- a/third_party/systemlibs/sqlite.BUILD
@@ -443,8 +446,8 @@ index 00000000..414098f7
 +     headers = _get_tensorrt_headers(trt_version)
 +     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
-+2.31.1
++2.27.0
 +
 -- 
-2.31.1
+2.40.1
 
