@@ -87,6 +87,8 @@ build --define=INCLUDEDIR="$SYSTEM_LIBS_PREFIX/include"
 build --define=tflite_with_xnnpack="$XNNPACK_STATUS"
 build --define=tflite_kernel_use_xnnpack="$XNNPACK_STATUS"
 build --copt="-DEIGEN_ALTIVEC_ENABLE_MMA_DYNAMIC_DISPATCH=$USE_MMA"
+build --copt="-Wno-array-bounds"
+build --copt="-Wno-stringop-overflow"
 build --strip=always
 build --color=yes
 build --verbose_failures
