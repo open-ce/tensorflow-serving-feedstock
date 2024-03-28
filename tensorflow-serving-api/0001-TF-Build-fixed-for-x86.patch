@@ -1,18 +1,18 @@
-From 008bbf4d9d963a95964de1f06c7128ba3e53485e Mon Sep 17 00:00:00 2001
-From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-Date: Tue, 22 Aug 2023 05:47:09 +0000
+From 3dd5a05061da61150c63d18ec36f3ed2bf7708f2 Mon Sep 17 00:00:00 2001
+From: Aman Surkar <Aman.Surkar@ibm.com>
+Date: Tue, 12 Mar 2024 08:57:19 +0000
 Subject: [PATCH] TF Build fixed
 
 ---
  WORKSPACE                                     |  10 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/tensorflow_patches.patch       | 400 ++++++++++++++++++
- 3 files changed, 410 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 414 ++++++++++++++++++
+ 3 files changed, 424 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
 diff --git a/WORKSPACE b/WORKSPACE
-index 1d86ff2c..c9f13172 100644
+index cea6d5a7..e02cee17 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -9,6 +9,15 @@ local_repository(
@@ -33,8 +33,8 @@ index 1d86ff2c..c9f13172 100644
  # TensorFlow is imported here instead of in tf_serving_workspace() because
 @@ -26,6 +35,7 @@ tensorflow_http_archive(
      name = "org_tensorflow",
-     sha256 = "a62eba23ebfcf1d6d2d3241f1629b99df576a9f726c439a97c3acd590e71fe62",
-     git_commit = "1cb1a030a62b169d90d34c747ab9b09f332bf905",
+     sha256 = "bede963ce97c4badcbb3149acd7c35a6a4954fa3361b777272a58a300e7e8f1d",
+     git_commit = "99d80a9e254c9df7940b2902b14d15914dbbbcd9",
 +    patch = "//third_party/tensorflow:tensorflow_patches.patch",
  )
  
@@ -44,32 +44,32 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..7d371f39
+index 00000000..e351d7aa
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,400 @@
-+From f48affcdac37f007ad221822cfffb2502b3002f7 Mon Sep 17 00:00:00 2001
-+From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-+Date: Fri, 18 Aug 2023 02:30:41 -0400
+@@ -0,0 +1,414 @@
++From 214a3603616e9c07635af17ca438a39da02d8b22 Mon Sep 17 00:00:00 2001
++From: Aman Surkar <Aman.Surkar@ibm.com>
++Date: Tue, 12 Mar 2024 08:54:21 +0000
 +Subject: [PATCH] TF patches
 +
 +---
 + tensorflow/python/lib/core/ndarray_tensor.cc  |  2 +-
 + tensorflow/tensorflow.bzl                     |  2 +
 + tensorflow/tsl/profiler/utils/xplane_utils.cc |  3 +-
-+ tensorflow/workspace2.bzl                     | 11 ++++
++ tensorflow/workspace2.bzl                     | 11 +++
 + third_party/gpus/cuda/BUILD.tpl               |  8 +++
-+ third_party/gpus/cuda_configure.bzl           | 41 +++++++++++--
-+ third_party/grpc/generate_cc_env_fix.patch    | 60 ++++++++++++++++++-
-+ third_party/grpc/upb_gcc10.patch              | 54 +++++++++++++++++
-+ third_party/systemlibs/sqlite.BUILD           | 27 ++++++++-
++ third_party/gpus/cuda_configure.bzl           | 41 +++++++++--
++ third_party/grpc/generate_cc_env_fix.patch    | 60 +++++++++++++++-
++ third_party/grpc/upb_gcc10.patch              | 68 +++++++++++++++++++
++ third_party/systemlibs/sqlite.BUILD           | 27 +++++++-
 + third_party/tensorrt/BUILD.tpl                |  1 +
 + third_party/tensorrt/tensorrt_configure.bzl   |  2 +
-+ 11 files changed, 202 insertions(+), 9 deletions(-)
++ 11 files changed, 216 insertions(+), 9 deletions(-)
 + create mode 100644 third_party/grpc/upb_gcc10.patch
 +
 +diff --git a/tensorflow/python/lib/core/ndarray_tensor.cc b/tensorflow/python/lib/core/ndarray_tensor.cc
-+index 461918e25cd..849db78c33b 100644
++index db90e3745a8..8f9fb5e01c1 100644
 +--- a/tensorflow/python/lib/core/ndarray_tensor.cc
 ++++ b/tensorflow/python/lib/core/ndarray_tensor.cc
 +@@ -20,7 +20,7 @@ limitations under the License.
@@ -82,10 +82,10 @@ index 00000000..7d371f39
 + #include "tensorflow/c/eager/tfe_context_internal.h"
 + #include "tensorflow/c/tf_tensor_internal.h"
 +diff --git a/tensorflow/tensorflow.bzl b/tensorflow/tensorflow.bzl
-+index e9f5e5aaffa..29d9b41b666 100644
++index 3e83bf61472..f61b585aae0 100644
 +--- a/tensorflow/tensorflow.bzl
 ++++ b/tensorflow/tensorflow.bzl
-+@@ -1204,6 +1204,7 @@ def tf_gen_op_wrappers_cc(
++@@ -1230,6 +1230,7 @@ def tf_gen_op_wrappers_cc(
 +             clean_dep("//tensorflow/core:portable_tensorflow_lib"),
 +         ]),
 +         copts = tf_copts(),
@@ -93,7 +93,7 @@ index 00000000..7d371f39
 +         alwayslink = 1,
 +         visibility = visibility,
 +         compatible_with = compatible_with,
-+@@ -1222,6 +1223,7 @@ def tf_gen_op_wrappers_cc(
++@@ -1248,6 +1249,7 @@ def tf_gen_op_wrappers_cc(
 +             clean_dep("//tensorflow/core:portable_tensorflow_lib"),
 +         ]),
 +         copts = tf_copts(),
@@ -102,10 +102,10 @@ index 00000000..7d371f39
 +         visibility = [clean_dep("//tensorflow:internal")],
 +         compatible_with = compatible_with,
 +diff --git a/tensorflow/tsl/profiler/utils/xplane_utils.cc b/tensorflow/tsl/profiler/utils/xplane_utils.cc
-+index 9fd81bb7a32..e0da8d27bde 100644
++index caaf68bbd24..fedffdd9776 100644
 +--- a/tensorflow/tsl/profiler/utils/xplane_utils.cc
 ++++ b/tensorflow/tsl/profiler/utils/xplane_utils.cc
-+@@ -146,7 +146,8 @@ const XPlane* FindPlaneWithName(const XSpace& space, absl::string_view name) {
++@@ -179,7 +179,8 @@ const XPlane* FindPlaneWithName(const XSpace& space, absl::string_view name) {
 + 
 + std::vector<const XPlane*> FindPlanesWithNames(
 +     const XSpace& space, const std::vector<absl::string_view>& names) {
@@ -116,11 +116,11 @@ index 00000000..7d371f39
 +       FindAll(space.planes(), [&names_set](const XPlane* plane) {
 +         return names_set.contains(plane->name());
 +diff --git a/tensorflow/workspace2.bzl b/tensorflow/workspace2.bzl
-+index da9295adaba..f4302272a3c 100644
++index 3456b20b7e7..a81e3c95919 100644
 +--- a/tensorflow/workspace2.bzl
 ++++ b/tensorflow/workspace2.bzl
-+@@ -512,6 +512,17 @@ def _tf_repositories():
-+         urls = tf_mirror_urls("https://curl.haxx.se/download/curl-8.0.1.tar.gz"),
++@@ -519,6 +519,17 @@ def _tf_repositories():
++         urls = tf_mirror_urls("https://curl.se/download/curl-8.4.0.tar.gz"),
 +     )
 + 
 ++    tf_http_archive(
@@ -138,10 +138,10 @@ index 00000000..7d371f39
 +     tf_http_archive(
 +         name = "com_github_grpc_grpc",
 +diff --git a/third_party/gpus/cuda/BUILD.tpl b/third_party/gpus/cuda/BUILD.tpl
-+index 8f783e58d66..3590ce32dae 100644
++index a3ba2ffccc0..b0f04c9297f 100644
 +--- a/third_party/gpus/cuda/BUILD.tpl
 ++++ b/third_party/gpus/cuda/BUILD.tpl
-+@@ -75,6 +75,13 @@ cc_library(
++@@ -74,6 +74,13 @@ cc_library(
 +     srcs = ["cuda/lib/%{cuda_driver_lib}"],
 + )
 + 
@@ -155,7 +155,7 @@ index 00000000..7d371f39
 + cc_library(
 +     name = "cudart",
 +     srcs = ["cuda/lib/%{cudart_lib}"],
-+@@ -188,6 +195,7 @@ cc_library(
++@@ -187,6 +194,7 @@ cc_library(
 +         ":cudnn",
 +         ":cufft",
 +         ":curand",
@@ -164,7 +164,7 @@ index 00000000..7d371f39
 + )
 + 
 +diff --git a/third_party/gpus/cuda_configure.bzl b/third_party/gpus/cuda_configure.bzl
-+index 922d26deef9..ea287c678c4 100644
++index b14e6835063..1e9eda5d66c 100644
 +--- a/third_party/gpus/cuda_configure.bzl
 ++++ b/third_party/gpus/cuda_configure.bzl
 +@@ -51,6 +51,7 @@ load(
@@ -318,21 +318,35 @@ index 00000000..7d371f39
 ++
 +diff --git a/third_party/grpc/upb_gcc10.patch b/third_party/grpc/upb_gcc10.patch
 +new file mode 100644
-+index 00000000000..7d747c48083
++index 00000000000..a829e82878b
 +--- /dev/null
 ++++ b/third_party/grpc/upb_gcc10.patch
-+@@ -0,0 +1,54 @@
-++From 57028552ed072263cd6656e5feed67ff89a55e43 Mon Sep 17 00:00:00 2001
-++From: Nishidha Panpaliya <npanpa23@in.ibm.com>
-++Date: Mon, 7 Mar 2022 15:08:33 +0000
++@@ -0,0 +1,68 @@
+++From 7d1883b1c67ea1dfb82d1cef8fea2b50012a3b10 Mon Sep 17 00:00:00 2001
+++From: Aman Surkar <Aman.Surkar@ibm.com>
+++Date: Tue, 12 Mar 2024 08:51:45 +0000
 ++Subject: [PATCH] Fix for build failure with GCC10
 ++
 ++---
+++ BUILD     |  2 +-
 ++ upb/upb.c | 17 +++--------------
-++ 1 file changed, 3 insertions(+), 14 deletions(-)
+++ 2 files changed, 4 insertions(+), 15 deletions(-)
 ++
+++diff --git a/BUILD b/BUILD
+++index ad85b202..2311b2e4 100644
+++--- a/BUILD
++++++ b/BUILD
+++@@ -44,7 +44,7 @@ config_setting(
+++ 
+++ config_setting(
+++     name = "windows",
+++-    constraint_values = ["@bazel_tools//platforms:windows"],
++++    constraint_values = ["@platforms//os:windows"],
+++ )
+++ 
+++ config_setting(
 ++diff --git a/upb/upb.c b/upb/upb.c
-++index 266ea7d..1410b2d 100644
+++index 266ea7d7..1410b2d8 100644
 ++--- a/upb/upb.c
 +++++ b/upb/upb.c
 ++@@ -11,17 +11,6 @@
@@ -374,7 +388,7 @@ index 00000000..7d371f39
 ++ 
 ++ /* upb_alloc ******************************************************************/
 ++-- 
-++2.34.1
+++2.40.1
 ++
 +diff --git a/third_party/systemlibs/sqlite.BUILD b/third_party/systemlibs/sqlite.BUILD
 +index 88a84a96137..31fc5ed5e88 100644
@@ -446,7 +460,7 @@ index 00000000..7d371f39
 +     headers = _get_tensorrt_headers(trt_version)
 +     include_dir = config["tensorrt_include_dir"] + "/"
 +-- 
-+2.27.0
++2.40.1
 +
 -- 
 2.40.1
