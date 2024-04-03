@@ -1,4 +1,4 @@
-{% set version = "2.13.0" %}
+{% set version = "2.14.1" %}
 
 package:
    name: tensorflow-serving-api
@@ -12,7 +12,7 @@ source:
      - 0001-TF-Build-fixed.patch                 # [ppc64le and ppc_arch == 'p10']
 
 build:
-  number: 2
+  number: 1
   string: py_pb{{ protobuf | replace(".*", "")}}_{{ PKG_BUILDNUM }}
   noarch: python
   script_env:        #[ppc_arch == 'p10']
