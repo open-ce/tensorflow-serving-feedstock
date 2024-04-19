@@ -12,7 +12,7 @@ source:
      - 0001-TF-patch-for-ppc64le.patch                 # [ppc64le and ppc_arch == 'p10']
 
 build:
-  number: 1
+  number: 2
   string: py_pb{{ protobuf | replace(".*", "")}}_{{ PKG_BUILDNUM }}
   noarch: python
   script_env:        #[ppc_arch == 'p10']
