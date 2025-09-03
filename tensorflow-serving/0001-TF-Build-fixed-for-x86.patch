@@ -1,13 +1,13 @@
-From 73c97940be35e0f8b989e4170a5285231bf39910 Mon Sep 17 00:00:00 2001
-From: Aman Surkar <Aman.Surkar@ibm.com>
-Date: Mon, 1 Apr 2024 09:25:00 +0000
+From f202a1b5b27c0f18b5e610c28f015c06c435c5b7 Mon Sep 17 00:00:00 2001
+From: Archana-Shinde1 <archana.shinde1@ibm.com>
+Date: Wed, 3 Sep 2025 11:41:49 +0000
 Subject: [PATCH] TF Build fixed
 
 ---
  WORKSPACE                                     |  10 +
  third_party/tensorflow/BUILD                  |   0
- .../tensorflow/tensorflow_patches.patch       | 414 ++++++++++++++++++
- 3 files changed, 424 insertions(+)
+ .../tensorflow/tensorflow_patches.patch       | 412 ++++++++++++++++++
+ 3 files changed, 422 insertions(+)
  create mode 100644 third_party/tensorflow/BUILD
  create mode 100644 third_party/tensorflow/tensorflow_patches.patch
 
@@ -44,13 +44,13 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/third_party/tensorflow/tensorflow_patches.patch b/third_party/tensorflow/tensorflow_patches.patch
 new file mode 100644
-index 00000000..dd049fee
+index 00000000..0ced3119
 --- /dev/null
 +++ b/third_party/tensorflow/tensorflow_patches.patch
-@@ -0,0 +1,414 @@
-+From 8df1e268e3bb269396708d1975b1ac2c9a622b23 Mon Sep 17 00:00:00 2001
-+From: Aman Surkar <Aman.Surkar@ibm.com>
-+Date: Mon, 1 Apr 2024 08:42:29 +0000
+@@ -0,0 +1,412 @@
++From 2eb8843c36ecf4d81988710c6d0b5e139a894aa3 Mon Sep 17 00:00:00 2001
++From: Archana-Shinde1 <archana.shinde1@ibm.com>
++Date: Wed, 3 Sep 2025 11:36:24 +0000
 +Subject: [PATCH] TF patches
 +
 +---
@@ -62,10 +62,10 @@ index 00000000..dd049fee
 + third_party/gpus/cuda_configure.bzl           | 41 +++++++++--
 + third_party/grpc/generate_cc_env_fix.patch    | 60 +++++++++++++++-
 + third_party/grpc/upb_gcc10.patch              | 68 +++++++++++++++++++
-+ third_party/systemlibs/sqlite.BUILD           | 27 +++++++-
++ third_party/systemlibs/sqlite.BUILD           | 25 ++++++-
 + third_party/tensorrt/BUILD.tpl                |  1 +
 + third_party/tensorrt/tensorrt_configure.bzl   |  2 +
-+ 11 files changed, 216 insertions(+), 9 deletions(-)
++ 11 files changed, 214 insertions(+), 9 deletions(-)
 + create mode 100644 third_party/grpc/upb_gcc10.patch
 +
 +diff --git a/tensorflow/python/lib/core/ndarray_tensor.cc b/tensorflow/python/lib/core/ndarray_tensor.cc
@@ -391,10 +391,10 @@ index 00000000..dd049fee
 ++2.40.1
 ++
 +diff --git a/third_party/systemlibs/sqlite.BUILD b/third_party/systemlibs/sqlite.BUILD
-+index 88a84a96137..31fc5ed5e88 100644
++index 88a84a96137..75e10ea0e2f 100644
 +--- a/third_party/systemlibs/sqlite.BUILD
 ++++ b/third_party/systemlibs/sqlite.BUILD
-+@@ -1,12 +1,37 @@
++@@ -1,12 +1,35 @@
 + licenses(["unencumbered"])  # Public Domain
 + 
 ++HEADERS = [
@@ -405,7 +405,6 @@ index 00000000..dd049fee
 ++LIBS = [
 ++   "libsqlite3.so",
 ++   "libsqlite3.so.0",
-++   "libsqlite3.so.0.8.6",
 ++]
 ++
 + # Production build of SQLite library that's baked into TensorFlow.
@@ -424,9 +423,8 @@ index 00000000..dd049fee
 ++    cmd = """
 ++      cp -fL "$(INCLUDEDIR)/sqlite3.h" "$(@D)" &&
 ++      cp -fL "$(INCLUDEDIR)/sqlite3ext.h" "$(@D)" &&
-++      cp -fL "$(LIBDIR)/libsqlite3.so.0.8.6" "$(@D)" &&
-++      ln -sf "$(LIBDIR)/libsqlite3.so.0.8.6" "$(@D)/libsqlite3.so.0" &&
-++      ln -sf "$(LIBDIR)/libsqlite3.so.0.8.6" "$(@D)/libsqlite3.so"
+++      cp -fL "$(LIBDIR)/libsqlite3.so.0" "$(@D)" &&
+++      ln -sf "libsqlite3.so.0" "$(@D)/libsqlite3.so"
 ++    """,
 ++)
 ++
